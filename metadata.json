@@ -1,0 +1,8 @@
+{
+  "name": "IHA BIM & PYS",
+  "description": "Project Management System and Site View for Sibiu - Făgăraș Motorway Lot 1",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
