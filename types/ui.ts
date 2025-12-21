@@ -1,6 +1,6 @@
 
 import { LocalizedString, UserProfile, User, AppSettings } from './core';
-import { ProductionStat, MachineryStat, DailyLog, TimelinePhase, InfrastructureProject, ShortcutItem, StockItem, BoQItem, PVLAIndexConfig, PVLAStructure, PVLAFile, MatrixColumn, ProgressRow, DroneFlight } from './project';
+import { ProductionStat, MachineryStat, DailyLog, TimelinePhase, InfrastructureProject, ShortcutItem, StockItem, BoQItem, PVLAIndexConfig, PVLAStructure, PVLAFile, MatrixColumn, ProgressRow, DroneFlight, ChangelogEntry } from './project';
 import { TopoItem, PolygonPoint, ExternalMapLayer, UtilityCategory, SitePhoto, ChainageMarker, SiteIssue, MapNote, TopoData, LandXMLFile } from './map';
 
 export type ViewMode = 'DASHBOARD' | 'LOGIN' | 'ADMIN';
@@ -26,6 +26,15 @@ export interface SliderItem {
   title: LocalizedString;
   subtitle: LocalizedString;
   tag: string;
+}
+
+export interface MenuItemConfig {
+  id: string;
+  label: LocalizedString;
+  icon: string;
+  visible: boolean;
+  order: number;
+  children?: MenuItemConfig[]; // NEW: Support for sub-menus
 }
 
 export interface MenuConfig {
@@ -61,7 +70,7 @@ export interface AppData {
   
   externalLayers: ExternalMapLayer[]; 
   utilityCategories: UtilityCategory[];
-  landXmlFiles: LandXMLFile[]; // New Field
+  landXmlFiles: LandXMLFile[]; 
 
   sitePhotos: SitePhoto[]; 
   chainageMarkers: ChainageMarker[];
@@ -86,6 +95,8 @@ export interface AppData {
   topoData: TopoData;
   slides: SliderItem[];
   droneFlights: DroneFlight[]; 
-  menuConfig: MenuConfig;
+  menuConfig: MenuConfig; // Deprecated but kept for compatibility
+  menuStructure: MenuItemConfig[]; // NEW: Dynamic Menu Structure
   settings: AppSettings;
+  changelog: ChangelogEntry[]; // Added Changelog
 }

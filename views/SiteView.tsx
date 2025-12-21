@@ -1,26 +1,50 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import React, { useState } from 'react';
+import { TopNavbar } from '../components/TopNavbar'; // New Horizontal Navbar
 import { Footer } from '../components/Footer';
 import { useData } from '../context/DataContext';
-/* Import useUI to access language and active tab management */
 import { useUI } from '../context/UIContext';
 import { ChatWidget } from '../components/ChatWidget';
-/* Import ProfileModal */
 import { ProfileModal } from './panel/modals/ProfileModal';
 
 // Import Content Modules
-import { DashboardContent } from './front/DashboardContent';
-import { DashboardBottomContent } from './front/DashboardBottomContent';
+import { HomeContent } from './front/HomeContent'; // Combined Dashboard
 import { MaterialsContent } from './front/MaterialsContent';
 import { MachineryContent } from './front/MachineryContent';
 import { DroneContent } from './front/DroneContent';
 import { PvlaContent } from './front/PvlaContent';
-import { LayoutContent } from './front/LayoutContent';
 import { InfraContent } from './front/InfraContent';
 import { TimeLocationContent } from './front/TimeLocationContent';
 import { TopoMap } from './front/TopoMap';
+
+// Helper component to wrap standard content pages with scrolling
+const PageContainer = ({ 
+    children, 
+    title, 
+    color, 
+    noFooter = false, 
+    fullWidth = false 
+}: { 
+    children: React.ReactNode, 
+    title?: string, 
+    color?: string, 
+    noFooter?: boolean, 
+    fullWidth?: boolean 
+}) => (
+    <div className="flex flex-col min-h-full bg-iha-900">
+        <div className={`flex-1 ${fullWidth ? 'p-0' : 'p-4 md:p-8 max-w-[1600px] mx-auto w-full'}`}>
+            {title && (
+                <div className="mb-6 animate-in slide-in-from-left-4 duration-300">
+                    <h2 className={`text-2xl font-bold text-white border-l-4 pl-4 border-${color || 'blue-500'}`}>
+                        {title}
+                    </h2>
+                </div>
+            )}
+            {children}
+        </div>
+        {!noFooter && <Footer />}
+    </div>
+);
 
 interface SiteViewProps {
     onLogin?: () => void;
@@ -28,155 +52,68 @@ interface SiteViewProps {
 
 export const SiteView: React.FC<SiteViewProps> = ({ onLogin }) => {
   const { data } = useData();
-  /* Use UI context for language and active tab management */
   const { language, activeTab, setActiveTab } = useUI();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  
-  // Lazy Load States
-  const [showTimeLoc, setShowTimeLoc] = useState(false);
-  const [showMachinery, setShowMachinery] = useState(false);
 
-  const mainContainerRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<any>(null);
-
-  // --- SECTION CONFIGURATION ---
-  // This array defines the order and properties of each section on the page.
-  // It allows for easy reordering and cleaner rendering logic.
-  const sections = [
-      { 
-          id: 'dashboard', 
-          Component: () => <><DashboardContent /><DashboardBottomContent /></>, 
-          isVisible: true 
-      },
-      { 
-          id: 'timeloc', 
-          title: 'Zaman - Konum Diyagramı', 
-          color: 'purple-500', 
-          Component: TimeLocationContent, 
-          isVisible: showTimeLoc 
-      },
-      { 
-          id: 'layout', 
-          title: 'Genel Yerleşim Planları', 
-          color: 'orange-500', 
-          Component: LayoutContent, 
-          isVisible: true 
-      },
-      { 
-          id: 'topo', 
-          // TopoMap handles its own header and layout
-          Component: TopoMap, 
-          isVisible: true 
-      },
-      { 
-          id: 'materials', 
-          title: 'Malzeme & BoQ', 
-          color: 'purple-500', 
-          Component: MaterialsContent, 
-          isVisible: true 
-      },
-      { 
-          id: 'machinery', 
-          title: 'Makine Parkı', 
-          color: 'orange-500', 
-          Component: MachineryContent, 
-          isVisible: showMachinery 
-      },
-      { 
-          id: 'infra', 
-          title: 'Altyapı Projeleri', 
-          color: 'blue-500', 
-          Component: InfraContent, 
-          isVisible: true 
-      },
-      { 
-          id: 'pvla', 
-          title: 'PVLA - Dijital Matris Yönetimi', 
-          color: 'indigo-500', 
-          Component: PvlaContent, 
-          isVisible: true 
-      },
-      { 
-          id: 'drone', 
-          title: 'Drone Uçuş Kayıtları', 
-          color: 'red-500', 
-          Component: DroneContent, 
-          isVisible: true,
-          extraClass: 'pb-10' 
-      }
-  ];
-
-  // --- SCROLL & LAZY LOAD LOGIC ---
-  useEffect(() => {
-      const scrollToSection = (id: string) => {
-          if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-          
-          scrollTimeoutRef.current = setTimeout(() => {
-            const element = document.getElementById(id);
-            if (element && mainContainerRef.current) {
-                const elementTop = element.getBoundingClientRect().top;
-                const containerTop = mainContainerRef.current.getBoundingClientRect().top;
-                const currentScroll = mainContainerRef.current.scrollTop;
-                const offset = 24; // Header offset
-                const targetScroll = currentScroll + (elementTop - containerTop) - offset;
-                mainContainerRef.current.scrollTo({ top: targetScroll, behavior: "smooth" });
-            }
-          }, 100); 
-      };
-
-      // Handle Lazy Loading Triggers based on active tab
-      if (activeTab === 'timeloc') {
-          if (!showTimeLoc) setShowTimeLoc(true);
-          scrollToSection('timeloc');
-      } else if (activeTab === 'machinery') {
-          if (!showMachinery) setShowMachinery(true);
-          scrollToSection('machinery');
-      } else {
-          scrollToSection(activeTab);
-      }
-  }, [activeTab]);
+  // Helper to determine if we are in any PVLA related tab
+  const isPvlaTab = ['pvla', 'pvla-matrix', 'pvla-files', 'pvla-3d'].includes(activeTab);
 
   return (
-    <div className="flex h-screen bg-iha-900 text-slate-200 overflow-hidden">
-        {/* Mobile Sidebar Overlay */}
-        {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+    <div className="flex flex-col h-screen bg-iha-900 text-slate-200 overflow-hidden">
         
-        <Sidebar 
-            activeTab={activeTab} 
-            setActiveTab={(t) => {setActiveTab(t); setIsSidebarOpen(false);}} 
-            isAdmin={false} 
-            isOpen={isSidebarOpen}
-            onLogin={onLogin}
+        {/* HEADER (Fixed Height: h-14 / 56px) */}
+        <TopNavbar 
+            onLogin={onLogin} 
             onProfileClick={() => setIsProfileOpen(true)} 
         />
         
-        <div className="flex-1 flex flex-col w-full md:pl-72 transition-all duration-300">
-            <Header onMenuClick={() => setIsSidebarOpen(true)} title={data.settings.siteName[language]} />
-
-            <main ref={mainContainerRef} className="flex-1 overflow-y-auto bg-iha-900 relative flex flex-col">
-                {sections.map(({ id, title, color, Component, isVisible, extraClass }) => (
-                    isVisible ? (
-                        <section key={id} id={id} className={`p-4 md:p-8 ${id !== 'dashboard' ? 'border-t border-iha-700' : ''} ${extraClass || ''}`}>
-                            {title && (
-                                <div className="mb-6">
-                                    <h2 className={`text-2xl font-bold text-white border-l-4 pl-4 border-${color}`}>
-                                        {title}
-                                    </h2>
-                                </div>
-                            )}
-                            <Component />
-                        </section>
-                    ) : null
-                ))}
+        {/* MAIN CONTENT (Calculated Height) */}
+        <main className="flex-1 relative overflow-hidden h-[calc(100vh-56px)]">
+            
+            {/* SCROLLABLE PAGES */}
+            <div className={`h-full w-full overflow-y-auto custom-scrollbar ${activeTab === 'topo' ? 'hidden' : 'block'}`}>
+                {activeTab === 'dashboard' && <PageContainer><HomeContent /></PageContainer>}
                 
-                <Footer />
-            </main>
-        </div>
+                {/* PVLA Routing: Handles main menu and sub-menus */}
+                {isPvlaTab && (
+                    <PageContainer 
+                        title={data.menuConfig['pvla'] ? data.menuConfig['pvla'][language] : 'PVLA Management'} 
+                        color="indigo-500" 
+                        fullWidth
+                    >
+                        <div className="px-4 md:px-8"><PvlaContent /></div>
+                    </PageContainer>
+                )}
+
+                {activeTab === 'drone' && <PageContainer title={data.menuConfig['drone'][language]} color="red-500"><DroneContent /></PageContainer>}
+                {activeTab === 'timeloc' && <PageContainer title={data.menuConfig['timeloc'][language]} color="purple-500"><TimeLocationContent /></PageContainer>}
+                {/* InfraContent now handles Layout as well */}
+                {activeTab === 'infra' && <PageContainer title={data.menuConfig['infra'][language]} color="blue-500"><InfraContent /></PageContainer>}
+                {activeTab === 'materials' && <PageContainer title={data.menuConfig['materials'][language]} color="purple-500"><MaterialsContent /></PageContainer>}
+                {activeTab === 'machinery' && <PageContainer title={data.menuConfig['machinery'][language]} color="orange-500"><MachineryContent /></PageContainer>}
+                
+                {/* Fallback for Admin-only tabs */}
+                {['shortcuts', 'settings', 'users'].includes(activeTab) && (
+                        <div className="h-full flex items-center justify-center text-slate-500">
+                        <p>Bu modül sadece Yönetici Paneli üzerinden erişilebilir.</p>
+                        </div>
+                )}
+            </div>
+
+            {/* MAP VIEW (Absolute Positioning for Stability) */}
+            {/* The map container is always mounted but hidden via visibility/z-index to preserve WebGL context properly */}
+            <div 
+                className={`absolute inset-0 w-full h-full bg-iha-900 transition-opacity duration-300 ${activeTab === 'topo' ? 'opacity-100 z-10' : 'opacity-0 -z-10 pointer-events-none'}`}
+            >
+                {/* Only render TopoMap if it has been accessed at least once or is active, to save initial load resources, 
+                    BUT keep it alive once rendered. */}
+                <TopoMap isActive={activeTab === 'topo'} />
+            </div>
+
+        </main>
         
         <ChatWidget />
         
-        {/* Profile Modal for Frontpage User */}
         <ProfileModal 
             isOpen={isProfileOpen} 
             onClose={() => setIsProfileOpen(false)} 

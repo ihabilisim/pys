@@ -134,3 +134,12 @@ export interface DroneFlight {
     thumbnailUrl?: string;
     location: string;
 }
+
+export interface ChangelogEntry {
+    id: string;
+    version: string;
+    date: string;
+    title: LocalizedString;
+    changes: string[]; // List of changes strings
+    type: 'major' | 'minor' | 'patch';
+}

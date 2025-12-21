@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { useUI } from '../../context/UIContext';
 import { useAuth } from '../../context/AuthContext';
@@ -70,8 +70,8 @@ const MatrixRowItem = React.memo(({ row, columns, onCellClick, canEdit }: {
 }, (prev, next) => prev.row === next.row && prev.columns === next.columns && prev.canEdit === next.canEdit);
 
 export const PvlaContent: React.FC = () => {
-  const { data, updateMatrixCell, addPVLAFile, deletePVLAFile } = useData();
-  const { language, t, showToast } = useUI();
+  const { data, updateMatrixCell, addPVLAFile, deletePVLAFile, loadPvlaFiles } = useData();
+  const { language, t, showToast, activeTab } = useUI();
   const { currentUser } = useAuth();
   
   const [pvlaTab, setPvlaTab] = useState<'MATRIX' | 'FILES' | '3D'>('MATRIX');
@@ -81,13 +81,35 @@ export const PvlaContent: React.FC = () => {
   const [sidebarSearch, setSidebarSearch] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
+  // --- NEW: Sync local tabs with global menu selection ---
+  useEffect(() => {
+      if (activeTab === 'pvla-matrix') setPvlaTab('MATRIX');
+      else if (activeTab === 'pvla-files') setPvlaTab('FILES');
+      else if (activeTab === 'pvla-3d') setPvlaTab('3D');
+      // If just 'pvla', default to current or MATRIX
+  }, [activeTab]);
+
+  // Initial structure selection
   React.useEffect(() => {
       if (!selectedStructureId && data.pvlaStructures.length > 0) {
           const first = data.pvlaStructures.find(s => s.type === pvlaTypeFilter);
           if (first) setSelectedStructureId(first.id);
       }
   }, [pvlaTypeFilter, data.pvlaStructures]);
+
+  // Lazy Load Files when Tab or Structure Changes
+  React.useEffect(() => {
+      if (pvlaTab === 'FILES' && selectedStructureId) {
+          const fetchFiles = async () => {
+              setIsLoadingFiles(true);
+              await loadPvlaFiles(selectedStructureId);
+              setIsLoadingFiles(false);
+          };
+          fetchFiles();
+      }
+  }, [pvlaTab, selectedStructureId]);
 
   const canEditMatrix = currentUser && (currentUser.role === 'admin' || currentUser.permissions.includes('manage_quality'));
   const canManageFiles = currentUser && (currentUser.role === 'admin' || currentUser.permissions.includes('manage_files'));
@@ -142,7 +164,7 @@ export const PvlaContent: React.FC = () => {
                   type: structure?.type || 'Bridge', 
                   structureId: selectedStructureId!,
                   structureName: structure?.name || 'Unknown', 
-                  date: new Date().toISOString().split('T')[0],
+                  date: new Date().toISOString().split('T')[0], 
                   size: (file.size / 1024 / 1024).toFixed(2) + ' MB', 
                   path: publicUrl
               });
@@ -217,7 +239,7 @@ export const PvlaContent: React.FC = () => {
       return groups;
   }, [activeColumns, language]);
 
-  const filteredFiles = data.pvlaFiles.filter(f => f.type === currentMatrixType && (!selectedStructureId || f.structureId === selectedStructureId));
+  const filteredFiles = data.pvlaFiles; // Already filtered by loader
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -334,22 +356,31 @@ export const PvlaContent: React.FC = () => {
                             )}
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {filteredFiles.map(file => (
-                                    <div key={file.id} className="group relative bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-2xl p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl shadow-black/30">
-                                        <div className="flex justify-between items-start mb-3"><div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]"><span className="material-symbols-outlined">picture_as_pdf</span></div>{canManageFiles && (<button onClick={() => deletePVLAFile(file.id)} className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-lg">delete</span></button>)}</div>
-                                        <h4 className="text-sm font-bold text-white mb-1 truncate" title={file.name}>{file.name}</h4><p className="text-[10px] text-slate-500 uppercase tracking-wider mb-3">{file.size} • {file.date}</p>{!selectedStructure && (<div className="text-[10px] text-blue-400 mb-3 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20 truncate">{file.structureName}</div>)}<a href={file.path} target="_blank" rel="noopener noreferrer" className="block w-full py-2 bg-white/5 hover:bg-blue-600 hover:text-white text-slate-400 text-center rounded-lg text-xs font-bold transition-all border border-white/5 hover:border-blue-500">{t('common.download')}</a>
+                            {isLoadingFiles ? (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                                    <span className="material-symbols-outlined text-4xl animate-spin mb-4 text-blue-500">sync</span>
+                                    <p>{t('common.loading')}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {filteredFiles.map(file => (
+                                            <div key={file.id} className="group relative bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-2xl p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl shadow-black/30">
+                                                <div className="flex justify-between items-start mb-3"><div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]"><span className="material-symbols-outlined">picture_as_pdf</span></div>{canManageFiles && (<button onClick={() => deletePVLAFile(file.id)} className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-lg">delete</span></button>)}</div>
+                                                <h4 className="text-sm font-bold text-white mb-1 truncate" title={file.name}>{file.name}</h4><p className="text-[10px] text-slate-500 uppercase tracking-wider mb-3">{file.size} • {file.date}</p>{!selectedStructure && (<div className="text-[10px] text-blue-400 mb-3 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20 truncate">{file.structureName}</div>)}<a href={file.path} target="_blank" rel="noopener noreferrer" className="block w-full py-2 bg-white/5 hover:bg-blue-600 hover:text-white text-slate-400 text-center rounded-lg text-xs font-bold transition-all border border-white/5 hover:border-blue-500">{t('common.download')}</a>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                            {filteredFiles.length === 0 && (<div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50"><span className="material-symbols-outlined text-6xl mb-4">folder_off</span><p>{t('pvla.noFiles')}</p></div>)}
+                                    {filteredFiles.length === 0 && (<div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50"><span className="material-symbols-outlined text-6xl mb-4">folder_off</span><p>{t('pvla.noFiles')}</p></div>)}
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
 
                 {/* 3. 3D MODEL GÖRÜNÜMÜ */}
                 {pvlaTab === '3D' && (
-                    <div className="flex-1 flex flex-col">
+                    <div className="flex-1 flex flex-col h-full relative min-h-[500px]">
                         {selectedStructureId ? (
                             <div className="relative w-full h-full">
                                 <div className="absolute top-4 right-4 z-10">
@@ -362,9 +393,12 @@ export const PvlaContent: React.FC = () => {
                             </div>
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-slate-600 bg-white/5 backdrop-blur-sm">
-                                <span className="material-symbols-outlined text-6xl mb-4 opacity-50">view_in_ar</span>
-                                <p className="text-lg font-medium opacity-50">{t('pvla.selectStructure')}</p>
-                                <p className="text-xs text-slate-500 mt-2">(3D Model for Bridge & Culvert)</p>
+                                <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-slate-800 to-slate-900 flex items-center justify-center mb-6 shadow-2xl border border-white/5 relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <span className="material-symbols-outlined text-6xl opacity-50 group-hover:scale-110 transition-transform duration-500">view_in_ar</span>
+                                </div>
+                                <p className="text-lg font-bold text-slate-400 uppercase tracking-widest mb-1">{t('pvla.selectStructure')}</p>
+                                <p className="text-xs text-slate-500">(3D Digital Twin)</p>
                             </div>
                         )}
                     </div>

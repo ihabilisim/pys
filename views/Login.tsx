@@ -2,155 +2,307 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import { useUI } from '../context/UIContext';
+import { mailService } from '../services/mail';
 
 interface LoginProps {
   onLogin: () => void;
   onBack: () => void;
 }
 
+type AuthMode = 'login' | 'register' | 'forgot';
+
 export const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
   const { data } = useData();
-  const { login } = useAuth();
+  const { login, addUser } = useAuth();
+  const { t, showToast } = useUI();
+  
+  const [mode, setMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Giriş İşlemi
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Find user in stored data
+    setError('');
     const user = data.users.find(u => u.username === username && u.password === password);
 
     if (user) {
       login(user);
       onLogin();
     } else {
-      setError('Kullanıcı adı veya şifre hatalı.');
+      setError(t('auth.loginError'));
     }
+  };
+
+  // Kayıt İşlemi
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError(t('auth.passwordMismatch'));
+      return;
+    }
+
+    if (data.users.some(u => u.username === username)) {
+      setError("Bu kullanıcı adı zaten alınmış.");
+      return;
+    }
+
+    setIsLoading(true);
+    // Kayıt simülasyonu
+    const newUser = {
+      username,
+      password,
+      fullName,
+      email,
+      role: 'viewer' as const,
+      permissions: [],
+      jobTitle: 'New Member'
+    };
+
+    addUser(newUser);
+    
+    setTimeout(() => {
+        setIsLoading(false);
+        showToast(t('auth.registerSuccess'), 'success');
+        setMode('login');
+    }, 1000);
+  };
+
+  // Şifre Sıfırlama İşlemi
+  const handleForgotPassword = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!email) return;
+      
+      setIsLoading(true);
+      const result = await mailService.sendPasswordReset(data.settings, email);
+      setIsLoading(false);
+
+      if (result.success) {
+          showToast(result.message, 'success');
+          setMode('login');
+      } else {
+          setError(result.message);
+      }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f172a] p-4 font-sans transition-colors duration-300">
-        <div className="relative w-full max-w-7xl mx-auto flex flex-col lg:flex-row h-auto lg:h-[800px] overflow-hidden rounded-2xl shadow-2xl bg-white dark:bg-[#1e293b] ring-1 ring-slate-900/5 dark:ring-white/10">
-            {/* LEFT SIDE: IMAGE & BRANDING */}
+        <div className="relative w-full max-w-7xl mx-auto flex flex-col lg:flex-row h-auto lg:h-[800px] overflow-hidden rounded-3xl shadow-2xl bg-white dark:bg-[#1e293b] ring-1 ring-slate-900/5 dark:ring-white/10">
+            
+            {/* SOL TARAF: MARKA VE GÖRSEL */}
             <div className="hidden lg:flex lg:w-1/2 relative flex-col bg-[#0f172a]">
-                <div className="absolute inset-0 bg-cover bg-center opacity-60 mix-blend-overlay" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuC23er-tUcjpg5YPEU7WsFhMJTH7DeXlgJ3EaUAhJhcLGuq5B9-D2c_48t-FoOtyK4tm8ORjrIY-uyMo2dhcAggLMP5YJ41XplG_I7eRm1TX_TYwTMyc0jy0WbSeSlbN8N4QBLytM2UBAxxXcXMUruqwbfPkIerdlFZnrLliyeusHSNkrsurdcZzJqCZblfvNY_kt5iNQ2n1B3xOmsAE6l39RPMEBfuNWvWm1A_YMM2tOhGMOdj7PYNI3zSR9DyUD0WLI4k9GIoOOMf')" }}></div>
+                <div className="absolute inset-0 bg-cover bg-center opacity-60 mix-blend-overlay" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=2070')" }}></div>
                 <div className="absolute inset-0 bg-gradient-to-b from-[#0f172a]/90 to-[#0f172a]/40"></div>
                 <div className="relative z-10 flex flex-col justify-between h-full p-12">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+                        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-blue-500/20">
                             I
                         </div>
-                        <span className="text-white font-bold text-xl tracking-wide">IHA BIM&PYS</span>
+                        <span className="text-white font-bold text-xl tracking-tight">IHA BIM & PYS</span>
                     </div>
                     <div className="max-w-md">
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-                            Geleceği <span className="text-blue-500">İnşa Ediyoruz</span>
+                            Geleceğin <span className="text-blue-500">Yollarını</span> Birlikte Kuruyoruz
                         </h1>
                         <p className="text-slate-300 text-lg leading-relaxed mb-8 font-light">
-                            Sibiu - Făgăraș Otoyolu Lot 1 Projesi. Modern altyapı çözümleri ve sürdürülebilir mühendislik ile yolları birleştiriyoruz.
+                            Makyol Sibiu - Făgăraș Otoyolu Lot 1 Projesi Dijital Yönetim Platformuna Hoş Geldiniz.
                         </p>
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-                                <span className="material-symbols-outlined text-blue-500 text-xl">engineering</span>
-                                <span>Proje Yönetim Sistemi v2.4</span>
-                            </div>
-                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <div className="h-1.5 w-12 bg-blue-600 rounded-full"></div>
-                        <div className="h-1.5 w-4 bg-slate-600 rounded-full"></div>
-                        <div className="h-1.5 w-4 bg-slate-600 rounded-full"></div>
+                    <div className="flex items-center gap-4 text-xs text-slate-400">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
+                            <span className="material-symbols-outlined text-blue-500 text-xl">verified_user</span>
+                            <span>Secure Enterprise Access</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* RIGHT SIDE: LOGIN FORM */}
-            <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 lg:p-24 bg-white dark:bg-[#1e293b] relative">
-                <button onClick={onBack} className="absolute top-8 right-8 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center gap-1 text-sm font-medium transition-colors">
-                    <span className="material-symbols-outlined">arrow_back</span>
-                    Geri Dön
+            {/* SAĞ TARAF: FORM ALANI */}
+            <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 lg:p-20 bg-white dark:bg-[#1e293b] relative">
+                <button onClick={onBack} className="absolute top-4 right-4 lg:top-8 lg:right-8 text-slate-400 hover:text-blue-500 flex items-center gap-1 text-sm font-medium transition-all group p-2">
+                    <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                    {t('auth.back')}
                 </button>
 
-                <div className="w-full max-w-md flex flex-col gap-8">
-                    <div className="text-center lg:text-left space-y-2">
-                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-                            IHA Sibiu Lot1 CMS<br/>
-                            <span className="text-blue-500">Yönetici Girişi</span>
+                <div className="w-full max-w-md flex flex-col gap-6">
+                    {/* Başlık ve Mod Geçişi */}
+                    <div className="text-center lg:text-left space-y-2 mb-2 mt-8 lg:mt-0">
+                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight animate-in slide-in-from-top-4">
+                            {mode === 'login' ? t('auth.loginTitle') : mode === 'register' ? t('auth.registerTitle') : t('auth.resetTitle')}
                         </h2>
-                        <p className="text-gray-500 dark:text-slate-400">
-                            Panele güvenli erişim için kimlik bilgilerinizi giriniz.
+                        <p className="text-gray-500 dark:text-slate-400 text-sm">
+                            {mode === 'login' ? t('auth.loginSubtitle') : mode === 'register' ? t('auth.registerSubtitle') : t('auth.resetDesc')}
                         </p>
                     </div>
 
-                    <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-700 dark:text-slate-300 ml-1" htmlFor="username">Kullanıcı Adı</label>
-                            <div className="relative group">
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl text-xs flex items-center gap-2 animate-in fade-in zoom-in-95">
+                            <span className="material-symbols-outlined text-lg">error</span>
+                            {error}
+                        </div>
+                    )}
+
+                    <form className="flex flex-col gap-4" onSubmit={mode === 'login' ? handleLogin : mode === 'register' ? handleRegister : handleForgotPassword}>
+                        
+                        {/* Kayıt Modu için Ekstra Alanlar */}
+                        {mode === 'register' && (
+                            <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <span className="material-symbols-outlined text-gray-400 group-focus-within:text-blue-500 transition-colors">badge</span>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        placeholder={t('auth.fullName')}
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                        className="w-full pl-11 pr-4 py-3.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-2xl text-base text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* E-posta Alanı (Kayıt ve Şifre Sıfırlama) */}
+                        {(mode === 'register' || mode === 'forgot') && (
+                            <div className="relative group animate-in slide-in-from-right-4 duration-300 delay-75">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span className="material-symbols-outlined text-gray-400 group-focus-within:text-blue-500 transition-colors">mail</span>
+                                </div>
+                                <input 
+                                    type="email" 
+                                    placeholder={t('auth.emailPlaceholder')}
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-2xl text-base text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                    required
+                                />
+                            </div>
+                        )}
+
+                        {/* Kullanıcı Adı Alanı (Giriş ve Kayıt) */}
+                        {mode !== 'forgot' && (
+                            <div className="relative group animate-in slide-in-from-right-4 duration-300 delay-100">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span className="material-symbols-outlined text-gray-400 group-focus-within:text-blue-500 transition-colors">person</span>
                                 </div>
                                 <input 
-                                    id="username" 
                                     type="text" 
+                                    placeholder={t('auth.username')}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="kullanici"
-                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
+                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-2xl text-base text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                    required
                                 />
                             </div>
-                        </div>
+                        )}
 
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center ml-1">
-                                <label className="text-sm font-semibold text-gray-700 dark:text-slate-300" htmlFor="password">Şifre</label>
-                                <a href="#" className="text-xs font-medium text-blue-500 hover:text-blue-400 transition-colors">Şifremi Unuttum?</a>
-                            </div>
-                            <div className="relative group">
+                        {/* Şifre Alanı (Giriş ve Kayıt) */}
+                        {mode !== 'forgot' && (
+                            <div className="relative group animate-in slide-in-from-right-4 duration-300 delay-150">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <span className="material-symbols-outlined text-gray-400 group-focus-within:text-blue-500 transition-colors">lock</span>
                                 </div>
                                 <input 
-                                    id="password" 
                                     type={showPassword ? "text" : "password"}
+                                    placeholder={t('auth.password')}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    className="w-full pl-11 pr-12 py-3.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200"
+                                    className="w-full pl-11 pr-12 py-3.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-2xl text-base text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                    required
                                 />
                                 <button 
                                     type="button" 
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors focus:outline-none"
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-blue-500 transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
                                 </button>
                             </div>
-                        </div>
+                        )}
 
-                        {error && (
-                            <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lg">error</span>
-                                {error}
+                        {/* Şifre Tekrarı (Sadece Kayıt) */}
+                        {mode === 'register' && (
+                            <div className="relative group animate-in slide-in-from-right-4 duration-300 delay-200">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <span className="material-symbols-outlined text-gray-400 group-focus-within:text-blue-500 transition-colors">lock_reset</span>
+                                </div>
+                                <input 
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder={t('auth.confirmPassword')}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-2xl text-base text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                    required
+                                />
                             </div>
                         )}
 
-                        <button className="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-base py-3.5 px-6 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-2">
-                            <span>Giriş Yap</span>
-                            <span className="material-symbols-outlined text-xl">arrow_forward</span>
+                        {/* Giriş Modunda Şifremi Unuttum Linki */}
+                        {mode === 'login' && (
+                            <div className="flex justify-end -mt-2">
+                                <button type="button" onClick={() => setMode('forgot')} className="text-xs font-semibold text-blue-600 hover:text-blue-500 transition-colors p-2">
+                                    {t('auth.forgotPassword')}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Ana Buton */}
+                        <button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-base py-4 px-6 rounded-2xl shadow-xl shadow-blue-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {isLoading ? (
+                                <span className="material-symbols-outlined animate-spin">sync</span>
+                            ) : (
+                                <>
+                                    <span>{mode === 'login' ? t('auth.loginButton') : mode === 'register' ? t('auth.registerButton') : t('auth.sendLink')}</span>
+                                    <span className="material-symbols-outlined text-xl">arrow_forward</span>
+                                </>
+                            )}
                         </button>
                     </form>
 
-                    <div className="pt-4 text-center">
-                        <p className="text-sm text-gray-500 dark:text-slate-500">
-                            Giriş yapamıyor musunuz? 
-                            <a href="#" className="text-gray-700 dark:text-slate-200 font-medium hover:text-blue-500 hover:underline transition-colors ml-1">IT Destek ile iletişime geçin</a>
-                        </p>
+                    {/* Alt Linkler ve Mod Değişimi */}
+                    <div className="text-center space-y-4">
+                        <div className="flex items-center gap-2 justify-center text-sm">
+                            <span className="text-slate-500">
+                                {mode === 'login' ? "Henüz bir hesabınız yok mu?" : "Zaten bir hesabınız var mı?"}
+                            </span>
+                            <button 
+                                onClick={() => {
+                                    setMode(mode === 'login' ? 'register' : 'login');
+                                    setError('');
+                                }} 
+                                className="font-bold text-blue-600 hover:text-blue-500 transition-colors underline underline-offset-4 p-1"
+                            >
+                                {mode === 'login' ? "Hemen Kayıt Ol" : "Giriş Yap"}
+                            </button>
+                        </div>
+                        
+                        {mode === 'forgot' && (
+                             <button 
+                                onClick={() => setMode('login')} 
+                                className="text-xs font-bold text-slate-500 hover:text-blue-500 transition-colors flex items-center gap-1 mx-auto p-2"
+                            >
+                                <span className="material-symbols-outlined text-sm">arrow_back</span>
+                                {t('auth.back')}
+                            </button>
+                        )}
                     </div>
 
-                    <div className="mt-auto pt-8 border-t border-gray-100 dark:border-slate-700/50 flex justify-center text-xs text-slate-400">
-                        <p>© 2024 IHA Bilişim - Tüm hakları saklıdır.</p>
+                    <div className="mt-auto pt-8 border-t border-gray-100 dark:border-slate-700/50 text-center">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest">{t('auth.copyright')}</p>
                     </div>
                 </div>
             </div>

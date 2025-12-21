@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
@@ -32,7 +33,6 @@ const CustomShapeElement = ({ position, rotation, shape, depth, color, onClick, 
     return (
         <group position={position} rotation={rotation || [0, 0, 0]}>
             <mesh
-                ref={meshRef}
                 onClick={(e) => { e.stopPropagation(); onClick(); }}
                 onPointerOver={() => setHover(true)}
                 onPointerOut={() => setHover(false)}

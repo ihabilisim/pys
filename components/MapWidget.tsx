@@ -18,15 +18,17 @@ interface MapWidgetProps {
     setLiveArea: (area: string) => void;
     setProfileData?: (data: any) => void;
     onChainageClick?: (km: string) => void; 
+    isVisible?: boolean; // Prop to trigger resize
 }
 
 export const MapWidget: React.FC<MapWidgetProps> = ({ 
     activeTool, setActiveTool, onMapClick, measurePoints, setMeasurePoints, 
-    setLiveDistance, setLiveArea, setProfileData, onChainageClick 
+    setLiveDistance, setLiveArea, setProfileData, onChainageClick, isVisible = true
 }) => {
-    const { data, selectedPolyId } = useData();
+    const { data, selectedPolyId, loadSiteIssues, loadMapData } = useData();
     const { t } = useUI();
     
+    const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
     const layersRef = useRef<Record<string, any>>({});
     const onMapClickRef = useRef(onMapClick);
@@ -49,6 +51,12 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
     const [mapStats, setMapStats] = useState({ zoom: 15, avgElevation: '405.37' });
     const [isLocating, setIsLocating] = useState(false);
 
+    // Initial Data Load
+    useEffect(() => {
+        loadSiteIssues();
+        loadMapData(); 
+    }, []);
+
     useEffect(() => { onMapClickRef.current = onMapClick; }, [onMapClick]);
 
     const updateStats = () => {
@@ -69,8 +77,9 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
 
     // Initialize Map
     useEffect(() => {
-        if (mapRef.current) return;
-        const map = L.map('topo-map', { zoomControl: false, attributionControl: false }).setView([45.6450, 24.2780], 15);
+        if (mapRef.current || !mapContainerRef.current) return;
+        
+        const map = L.map(mapContainerRef.current, { zoomControl: false, attributionControl: false }).setView([45.6450, 24.2780], 15);
         mapRef.current = map;
 
         layersRef.current.polygons = L.featureGroup().addTo(map);
@@ -98,12 +107,39 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
 
         map.on('locationerror', (e: any) => {
             setIsLocating(false);
-            alert("Konum bulunamadı: " + e.message);
+            alert(`${t('mapWidget.locationError')}: ${e.message}`);
         });
         
         updateStats();
-        return () => { map.remove(); mapRef.current = null; };
+        return () => { 
+            // Cleanup strictly handled to avoid memory leaks but often better to keep instance if using KeepAlive
+            map.remove(); 
+            mapRef.current = null; 
+        };
     }, []);
+
+    // --- KEY FIX: Handle Resize / Visibility Changes ---
+    useEffect(() => {
+        if (!mapRef.current || !mapContainerRef.current) return;
+        
+        // 1. Invalidate size immediately when isVisible prop changes
+        if (isVisible) {
+            setTimeout(() => {
+                mapRef.current.invalidateSize();
+            }, 100);
+        }
+
+        // 2. Observe container resize (handles Split Pane resizing)
+        const resizeObserver = new ResizeObserver(() => {
+            mapRef.current.invalidateSize();
+        });
+        
+        resizeObserver.observe(mapContainerRef.current);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [isVisible]);
 
     // Base Layer Logic
     useEffect(() => {
@@ -116,10 +152,8 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
         }
     }, [baseMap]);
 
-    // Use Custom Hook for Layers
     useMapLayers(mapRef, layersRef, visibleLayers, selectedPolyId, activeTool, onChainageClick);
 
-    // Tools Drawing Logic
     useEffect(() => {
         if (!layersRef.current.tools) return;
         layersRef.current.tools.clearLayers();
@@ -139,8 +173,9 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
     }, [measurePoints, activeTool]);
 
     return (
-        <div className="relative w-full h-[550px] rounded-2xl overflow-hidden border border-iha-700 shadow-2xl bg-iha-900 group">
-            <div id="topo-map" className="w-full h-full z-0"></div>
+        <div className="relative w-full h-full bg-iha-900 group">
+            {/* The Map Container - Ref attached here */}
+            <div ref={mapContainerRef} id="topo-map" className="w-full h-full z-0"></div>
 
             <DronOtofotoInfo isActive={visibleLayers.drone} />
 
@@ -188,7 +223,6 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
                                     <span className="text-xs text-slate-300 group-hover:text-white transition-colors">{t('mapWidget.drone')} (12.12.24)</span>
                                 </label>
                                 
-                                {/* Cut/Fill Layer Toggle - Now Independent */}
                                 <label className="flex items-center gap-3 cursor-pointer group">
                                     <input type="checkbox" checked={visibleLayers.cutFill} onChange={() => setVisibleLayers(v => ({...v, cutFill: !v.cutFill}))} className="w-4 h-4 rounded border-iha-600 bg-iha-900 text-blue-500" />
                                     <div className="flex gap-0.5">
@@ -225,7 +259,7 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
                 </div>
                 <button onClick={() => { setIsLocating(true); mapRef.current.locate({setView: true, maxZoom: 18}); }} className={`w-12 h-12 bg-iha-800 border border-iha-700 rounded-xl shadow-2xl flex items-center justify-center transition-all ${isLocating ? 'text-blue-500 animate-pulse border-blue-500' : 'text-slate-400 hover:text-white'}`}><span className="material-symbols-outlined">{isLocating ? 'gps_fixed' : 'my_location'}</span></button>
             </div>
-            <div className="absolute bottom-6 left-6 z-[1000] bg-iha-900/60 backdrop-blur px-3 py-1.5 rounded-lg text-[10px] text-slate-400 border border-white/5 font-mono shadow-xl italic">500 m <span className="mx-2 opacity-30">|</span> <span className="text-white/20 tracking-tighter">––––––––––</span></div>
+            <div className="absolute bottom-6 left-6 z-[1000] bg-iha-900/60 backdrop-blur px-3 py-1.5 rounded-lg text-[10px] text-slate-400 border border-white/5 font-mono shadow-xl italic hidden md:block">500 m <span className="mx-2 opacity-30">|</span> <span className="text-white/20 tracking-tighter">––––––––––</span></div>
         </div>
     );
 };

@@ -1,14 +1,19 @@
 
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 /* Import useUI to access language, translations and active tab management */
 import { useUI } from '../../context/UIContext';
 
 export const DashboardBottomContent = forwardRef<HTMLDivElement>((_, ref) => {
-  const { data } = useData();
+  const { data, loadNotifications } = useData();
   /* Use UI context for language, translations and active tab management */
   const { language, setActiveTab, t } = useUI();
   const labels = data.menuConfig;
+
+  // Lazy Load Notifications
+  useEffect(() => {
+      loadNotifications();
+  }, []);
 
   return (
     <div className="space-y-6 mt-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -67,7 +72,7 @@ export const DashboardBottomContent = forwardRef<HTMLDivElement>((_, ref) => {
         )}
 
         {/* Dashboard Bottom Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div onClick={() => setActiveTab('pvla')} className="bg-iha-800 p-4 rounded-xl border border-iha-700 hover:bg-iha-700 cursor-pointer transition-colors flex items-center gap-4 group">
                 <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-500 group-hover:text-white group-hover:bg-blue-500 transition-all">
                     <span className="material-symbols-outlined">folder_shared</span>
@@ -95,16 +100,6 @@ export const DashboardBottomContent = forwardRef<HTMLDivElement>((_, ref) => {
                 <div>
                     <h4 className="text-white font-bold text-sm">{labels['topo'][language]}</h4>
                     <p className="text-slate-500 text-xs">{t('sidebar.topo')}</p>
-                </div>
-            </div>
-            
-            <div onClick={() => setActiveTab('layout')} className="bg-iha-800 p-4 rounded-xl border border-iha-700 hover:bg-iha-700 cursor-pointer transition-colors flex items-center gap-4 group">
-                <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center text-orange-500 group-hover:text-white group-hover:bg-orange-500 transition-all">
-                    <span className="material-symbols-outlined">map</span>
-                </div>
-                <div>
-                    <h4 className="text-white font-bold text-sm">{labels['layout'][language]}</h4>
-                    <p className="text-slate-500 text-xs">{t('sidebar.layout')}</p>
                 </div>
             </div>
         </div>

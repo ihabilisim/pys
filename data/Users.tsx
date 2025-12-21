@@ -11,7 +11,7 @@ export const DEMO_PROFILE: UserProfile = {
 
 export const DEMO_USERS: User[] = [
     {
-        id: 'admin-1',
+        id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', // Valid UUID
         username: 'admin',
         password: '123',
         fullName: 'Sistem Yöneticisi',

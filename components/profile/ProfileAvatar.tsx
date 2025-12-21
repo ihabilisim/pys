@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useUI } from '../../context/UIContext';
 
 interface ProfileAvatarProps {
     avatarUrl: string | null;
@@ -7,6 +8,7 @@ interface ProfileAvatarProps {
 }
 
 export const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ avatarUrl, onChange }) => {
+    const { t } = useUI();
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             onChange(e.target.files[0]);
@@ -34,7 +36,7 @@ export const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ avatarUrl, onChang
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-[2px]">
                     <span className="material-symbols-outlined text-white text-2xl mb-1">add_a_photo</span>
-                    <span className="text-[9px] text-white font-bold uppercase tracking-wider">Değiştir</span>
+                    <span className="text-[9px] text-white font-bold uppercase tracking-wider">{t('profile.changePhoto')}</span>
                 </div>
 
                 {/* Edit Icon Badge */}

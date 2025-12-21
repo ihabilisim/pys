@@ -43,6 +43,86 @@ export const ro = {
     adminUploadHint: "Puteți încărca din panoul de administrare.",
     noPermission: "Nu aveți permisiunea pentru această acțiune."
   },
+  auth: {
+    loginTitle: "Autentificare Admin",
+    loginSubtitle: "Introduceți datele pentru acces securizat.",
+    username: "Nume Utilizator",
+    password: "Parolă",
+    forgotPassword: "Ai uitat parola?",
+    loginButton: "Autentificare",
+    back: "Înapoi",
+    loginError: "Nume de utilizator sau parolă incorectă.",
+    contactSupport: "Nu vă puteți autentifica? Contactați IT.",
+    copyright: "IHA IT - Toate drepturile rezervate.",
+    sending: "Se trimite...",
+    sendLink: "Trimite Link",
+    emailPlaceholder: "Adresă E-mail",
+    resetTitle: "Resetare Parolă",
+    resetDesc: "Introduceți adresa de e-mail înregistrată. Vă vom trimite un link de resetare."
+  },
+  profile: {
+    title: "Profilul Meu",
+    changePhoto: "Schimbă",
+    fullName: "Nume Complet",
+    phone: "Telefon",
+    email: "E-mail",
+    role: "Titlu / Rol",
+    update: "Actualizare",
+    logout: "Deconectare",
+    authorizedAreas: "Zone Autorizate",
+    authDesc: "Accesați rapid modulele definite în permisiunile dvs.",
+    noAuth: "Nicio permisiune specifică definită.",
+    helpTitle: "Aveți nevoie de ajutor?",
+    helpDesc: "Contactați IT pentru modificări de permisiuni.",
+    uploading: "Se încarcă fotografia de profil...",
+    success: "Profil actualizat cu succes.",
+    photoSuccess: "Fotografie de profil actualizată.",
+    logoutConfirm: "Sigur doriți să vă deconectați?"
+  },
+  permissions: {
+    group_system: "Sistem",
+    group_site: "Management Șantier",
+    group_resources: "Resurse",
+    group_planning: "Planificare",
+    group_technical: "Tehnic",
+    group_media: "Media",
+    manage_users: "Management Utilizatori",
+    manage_settings: "Setări Generale",
+    manage_daily_log: "Rapoarte Zilnice",
+    manage_stats: "Statistici & HSE",
+    manage_machinery: "Parc Utilaje",
+    manage_materials: "Materiale & BoQ",
+    manage_timeline: "Cronologie",
+    manage_map: "Hartă & Topo",
+    manage_files: "Fișiere & PVLA",
+    manage_quality: "Calitate (NCR/Snag)",
+    manage_drone: "Date Dronă",
+    manage_notifications: "Anunțuri"
+  },
+  roles: {
+    admin: "Administrator",
+    editor: "Editor",
+    viewer: "Vizitator"
+  },
+  excel: {
+    titlePolygon: "Încărcare Masivă Poligoane",
+    titleKm: "Încărcare Masivă Borne KM",
+    pasteArea: "Lipiți datele aici (CTRL+V)...",
+    detectedRows: "rânduri detectate",
+    waiting: "Se așteaptă date...",
+    upload: "Încarcă",
+    errorRoad: "Vă rugăm să selectați un Aliniament.",
+    errorPoly: "Nu au fost detectate date poligon.",
+    errorKm: "Nu au fost detectate date KM. Format: KM | Lat | Lng",
+    roadAlignment: "Aliniament",
+    sectionType: "Tip Secțiune",
+    types: {
+      MAIN: "Drum Principal (2+2)",
+      SECONDARY: "Drum Secundar (1+1)",
+      RAMP: "Rampă",
+      INTERSECTION: "Intersecție"
+    }
+  },
   topo: {
     title: "Hartă Topografică & Survey",
     subtitle: "Date Șantier Sibiu - Făgăraș Lot 1",
@@ -76,7 +156,45 @@ export const ro = {
     lane: "Bandă",
     width: "Lățime"
   },
+  concrete: {
+    title: "ASISTENT INTELIGENT BETON",
+    green: "Condiții optime pentru turnare.",
+    greenD: "Aplicați procedurile standard.",
+    yellow: "Turnați cu măsuri de precauție.",
+    yellowCold: "Vreme rece. Necesită protecție.",
+    yellowWind: "Vânt. Risc de fisuri.",
+    red: "Turnare nerecomandată / Riscant!",
+    redCold: "Risc îngheț. Încălzire obligatorie.",
+    redRain: "Ploaie. Risc deteriorare suprafață.",
+    redWind: "Vânt excesiv. Risc macara.",
+    ts: "SR EN 206"
+  },
+  chat: {
+    welcome: "Salut! Sunt Asistentul de Proiect IHA. Cunosc datele șantierului. Întreabă \"Care este starea betonului?\", \"Unde este P-500?\" sau \"Dă-mi raportul HSE\".",
+    navigating: "Se navighează la {tab}...",
+    found: "Focalizat pe {point} pe hartă.",
+    notFound: "Punctul {point} nu a fost găsit.",
+    error: "Eroare de conexiune. Vă rugăm să încercați din nou.",
+    fallback: "Am înțeles, dar nu pot accesa datele acum."
+  },
   admin: {
+    layout: {
+      categoryAdded: "Categorie adăugată cu succes.",
+      layerUploaded: "Strat GeoJSON încărcat cu succes.",
+      selectCategory: "Vă rugăm să selectați mai întâi o categorie.",
+      alignmentAdded: "Aliniament adăugat pe hartă.",
+      uploadError: "Eroare Încărcare:"
+    },
+    pvla: {
+      structureAdded: "{type} adăugat.",
+      selectStructure: "Vă rugăm să selectați o structură.",
+      fileUploaded: "Fișier încărcat cu succes.",
+      filesUploaded: "{count} fișiere încărcate cu succes.",
+      columnAdded: "Coloană adăugată.",
+      columnUpdated: "Coloană actualizată.",
+      rowAdded: "Rând adăugat.",
+      missingInfo: "Vă rugăm să introduceți structura și locația."
+    },
     dashboard: {
       title: "Panou de Control",
       tabs: {
@@ -165,10 +283,40 @@ export const ro = {
     },
     users: {
       title: "Management Utilizatori",
+      subtitle: "Profiluri personal și permisiuni de acces",
       newUser: "Utilizator Nou",
+      editUser: "Editare Utilizator",
+      accountInfo: "Informații Cont",
+      profileDetails: "Detalii Profil",
+      authMatrix: "Autorizare",
       username: "Nume Utilizator",
-      role: "Rol",
-      password: "Parolă"
+      password: "Parolă",
+      role: "Rol Sistem",
+      fullName: "Nume Complet",
+      jobTitle: "Titlu / Meserie",
+      phone: "Telefon",
+      email: "E-mail",
+      address: "Adresă / Locație",
+      selectAll: "Selectează / Deselectează Tot",
+      permDefined: "PERMISIUNI DEFINITE",
+      saveSuccess: "Profil utilizator actualizat",
+      createSuccess: "Utilizator nou creat"
+    },
+    infra: {
+        titleNew: "Adaugă Proiect Infrastructură Nou",
+        titleEdit: "Editează Proiect Infrastructură",
+        projectName: "Nume Proiect",
+        link: "Link (Opțional)"
+    },
+    shortcuts: {
+        titleNew: "Adaugă Scurtătură Nouă",
+        titleEdit: "Editează Scurtătură",
+        name: "Nume Scurtătură",
+        sourceType: "Tip Sursă",
+        fileUpload: "Încarcă Fișier",
+        externalLink: "Link Extern",
+        fileSelect: "Fișierul curent va fi păstrat dacă nu este schimbat.",
+        success: "Scurtătură salvată."
     }
   },
   mapTools: {
@@ -233,6 +381,8 @@ export const ro = {
     droneActive: "Imagine Dronă Activă",
     lastFlight: "Ultimul Zbor",
     userLocation: "Locația Ta",
+    locationError: "Locația nu a fost găsită",
+    cutFill: "Analiză Săpătură/Umplutură",
     tools: {
       profile: "Profil",
       distance: "Distanță",

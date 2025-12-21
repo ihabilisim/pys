@@ -5,45 +5,45 @@ import { useAuth } from '../../context/AuthContext';
 import { useUI } from '../../context/UIContext';
 import { User, Permission } from '../../types';
 
-// Definition of all available permissions with labels
-const PERMISSIONS_LIST: { id: Permission; label: string; group: string }[] = [
-    { id: 'manage_users', label: 'Kullanıcı Yönetimi', group: 'Sistem' },
-    { id: 'manage_settings', label: 'Genel Ayarlar', group: 'Sistem' },
-    { id: 'manage_daily_log', label: 'Günlük Raporlar', group: 'Saha Yönetimi' },
-    { id: 'manage_stats', label: 'İstatistik & İSG', group: 'Saha Yönetimi' },
-    { id: 'manage_machinery', label: 'Makine Parkı', group: 'Kaynaklar' },
-    { id: 'manage_materials', label: 'Malzeme & BoQ', group: 'Kaynaklar' },
-    { id: 'manage_timeline', label: 'İş Programı (Time-Loc)', group: 'Planlama' },
-    { id: 'manage_map', label: 'Harita & Topoğrafya', group: 'Teknik' },
-    { id: 'manage_files', label: 'PVLA & Dosyalar', group: 'Teknik' },
-    { id: 'manage_quality', label: 'Kalite (NCR/Snag)', group: 'Teknik' },
-    { id: 'manage_drone', label: 'Drone Verileri', group: 'Medya' },
-    { id: 'manage_notifications', label: 'Duyurular', group: 'Medya' },
+// Use Translation Keys for labels and groups
+const PERMISSIONS_LIST: { id: Permission; labelKey: string; groupKey: string }[] = [
+    { id: 'manage_users', labelKey: 'permissions.manage_users', groupKey: 'permissions.group_system' },
+    { id: 'manage_settings', labelKey: 'permissions.manage_settings', groupKey: 'permissions.group_system' },
+    { id: 'manage_daily_log', labelKey: 'permissions.manage_daily_log', groupKey: 'permissions.group_site' },
+    { id: 'manage_stats', labelKey: 'permissions.manage_stats', groupKey: 'permissions.group_site' },
+    { id: 'manage_machinery', labelKey: 'permissions.manage_machinery', groupKey: 'permissions.group_resources' },
+    { id: 'manage_materials', labelKey: 'permissions.manage_materials', groupKey: 'permissions.group_resources' },
+    { id: 'manage_timeline', labelKey: 'permissions.manage_timeline', groupKey: 'permissions.group_planning' },
+    { id: 'manage_map', labelKey: 'permissions.manage_map', groupKey: 'permissions.group_technical' },
+    { id: 'manage_files', labelKey: 'permissions.manage_files', groupKey: 'permissions.group_technical' },
+    { id: 'manage_quality', labelKey: 'permissions.manage_quality', groupKey: 'permissions.group_technical' },
+    { id: 'manage_drone', labelKey: 'permissions.manage_drone', groupKey: 'permissions.group_media' },
+    { id: 'manage_notifications', labelKey: 'permissions.manage_notifications', groupKey: 'permissions.group_media' },
 ];
 
 export const AdminUsers: React.FC = () => {
     const { data } = useData();
     const { currentUser, addUser, updateUser, deleteUser } = useAuth();
-    const { showToast } = useUI();
+    const { showToast, t } = useUI();
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<Partial<User>>({ permissions: [] });
 
     if (!currentUser || (!currentUser.permissions.includes('manage_users') && currentUser.role !== 'admin')) {
-        return <div className="text-slate-500 p-8 text-center">Bu alana erişim yetkiniz yok.</div>;
+        return <div className="text-slate-500 p-8 text-center">{t('common.noPermission')}</div>;
     }
 
     const handleSaveUser = (e: React.FormEvent) => {
         e.preventDefault();
         if(!editingUser.username || !editingUser.password) {
-            showToast('Kullanıcı adı ve şifre zorunludur.', 'error');
+            showToast(t('auth.loginError'), 'error');
             return;
         }
         
         const userData: User = {
-            id: editingUser.id || '', // Will be generated if new
+            id: editingUser.id || '', 
             username: editingUser.username,
             password: editingUser.password,
-            fullName: editingUser.fullName || 'Yeni Kullanıcı',
+            fullName: editingUser.fullName || 'New User',
             jobTitle: editingUser.jobTitle || '',
             email: editingUser.email || '',
             phone: editingUser.phone || '',
@@ -55,7 +55,7 @@ export const AdminUsers: React.FC = () => {
         if (editingUser.id) updateUser(editingUser.id, userData);
         else addUser(userData);
         
-        showToast(editingUser.id ? 'Kullanıcı profili güncellendi' : 'Yeni kullanıcı oluşturuldu');
+        showToast(editingUser.id ? t('admin.users.saveSuccess') : t('admin.users.createSuccess'));
         setIsUserModalOpen(false);
     };
 
@@ -77,8 +77,8 @@ export const AdminUsers: React.FC = () => {
 
     // Group permissions for UI
     const groupedPermissions = PERMISSIONS_LIST.reduce((acc, perm) => {
-        if (!acc[perm.group]) acc[perm.group] = [];
-        acc[perm.group].push(perm);
+        if (!acc[perm.groupKey]) acc[perm.groupKey] = [];
+        acc[perm.groupKey].push(perm);
         return acc;
     }, {} as Record<string, typeof PERMISSIONS_LIST>);
 
@@ -88,15 +88,15 @@ export const AdminUsers: React.FC = () => {
                 <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
                         <span className="material-symbols-outlined text-blue-500">manage_accounts</span>
-                        Kullanıcı Yönetimi
+                        {t('admin.users.title')}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">Personel profilleri ve sistem erişim yetkileri</p>
+                    <p className="text-xs text-slate-400 mt-1">{t('admin.users.subtitle')}</p>
                 </div>
                 <button 
                     onClick={() => { setEditingUser({ permissions: [], role: 'viewer' }); setIsUserModalOpen(true); }} 
                     className="bg-blue-600 hover:bg-blue-500 px-5 py-2.5 rounded-xl text-white font-bold flex items-center gap-2 shadow-lg transition-all"
                 >
-                    <span className="material-symbols-outlined">person_add</span> Yeni Kullanıcı
+                    <span className="material-symbols-outlined">person_add</span> {t('admin.users.newUser')}
                 </button>
             </div>
 
@@ -111,11 +111,11 @@ export const AdminUsers: React.FC = () => {
                                     </div>
                                     <div>
                                         <h4 className="font-bold text-white">{user.fullName}</h4>
-                                        <p className="text-xs text-blue-400 font-medium">{user.jobTitle || user.role}</p>
+                                        <p className="text-xs text-blue-400 font-medium">{user.jobTitle || t(`roles.${user.role}`)}</p>
                                     </div>
                                 </div>
                                 <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${user.role === 'admin' ? 'bg-purple-900/30 text-purple-400 border-purple-500/30' : 'bg-slate-700/50 text-slate-400 border-slate-600'}`}>
-                                    {user.role}
+                                    {t(`roles.${user.role}`)}
                                 </span>
                             </div>
                             
@@ -132,10 +132,10 @@ export const AdminUsers: React.FC = () => {
                             </div>
 
                             <div className="pt-4 border-t border-iha-700 flex justify-between items-center">
-                                <span className="text-[10px] text-slate-500 font-bold">{user.permissions.length} YETKİ TANIMLI</span>
+                                <span className="text-[10px] text-slate-500 font-bold">{user.permissions.length} {t('admin.users.permDefined')}</span>
                                 <div className="flex gap-2">
                                     <button onClick={() => { setEditingUser(user); setIsUserModalOpen(true); }} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">edit_note</span></button>
-                                    <button onClick={() => { if(window.confirm('Kullanıcıyı silmek istediğinize emin misiniz?')) deleteUser(user.id); }} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">delete</span></button>
+                                    <button onClick={() => { if(window.confirm(t('common.deleteConfirm'))) deleteUser(user.id); }} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">delete</span></button>
                                 </div>
                             </div>
                         </div>
@@ -149,7 +149,7 @@ export const AdminUsers: React.FC = () => {
                         <div className="p-6 border-b border-iha-700 flex justify-between items-center bg-iha-900/50 rounded-t-2xl">
                             <h3 className="text-xl font-bold text-white flex items-center gap-3">
                                 <span className="p-2 bg-blue-600 rounded-lg"><span className="material-symbols-outlined text-white">badge</span></span>
-                                {editingUser.id ? 'Kullanıcı Düzenle' : 'Yeni Kullanıcı Oluştur'}
+                                {editingUser.id ? t('admin.users.editUser') : t('admin.users.newUser')}
                             </h3>
                             <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-white transition-colors"><span className="material-symbols-outlined">close</span></button>
                         </div>
@@ -158,16 +158,16 @@ export const AdminUsers: React.FC = () => {
                             <form id="userForm" onSubmit={handleSaveUser} className="space-y-8">
                                 {/* ACCOUNT INFO */}
                                 <div>
-                                    <h4 className="text-sm font-bold text-blue-400 uppercase tracking-widest mb-4 border-l-4 border-blue-500 pl-3">Hesap Bilgileri</h4>
+                                    <h4 className="text-sm font-bold text-blue-400 uppercase tracking-widest mb-4 border-l-4 border-blue-500 pl-3">{t('admin.users.accountInfo')}</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div><label className="block text-xs text-slate-500 mb-1">Kullanıcı Adı *</label><input value={editingUser.username || ''} onChange={e => setEditingUser({...editingUser, username: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none" required /></div>
-                                        <div><label className="block text-xs text-slate-500 mb-1">Şifre *</label><input type="text" value={editingUser.password || ''} onChange={e => setEditingUser({...editingUser, password: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none" required /></div>
+                                        <div><label className="block text-xs text-slate-500 mb-1">{t('admin.users.username')} *</label><input value={editingUser.username || ''} onChange={e => setEditingUser({...editingUser, username: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none" required /></div>
+                                        <div><label className="block text-xs text-slate-500 mb-1">{t('admin.users.password')} *</label><input type="text" value={editingUser.password || ''} onChange={e => setEditingUser({...editingUser, password: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none" required /></div>
                                         <div>
-                                            <label className="block text-xs text-slate-500 mb-1">Sistem Rolü</label>
+                                            <label className="block text-xs text-slate-500 mb-1">{t('admin.users.role')}</label>
                                             <select value={editingUser.role || 'viewer'} onChange={e => setEditingUser({...editingUser, role: e.target.value as any})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none">
-                                                <option value="viewer">Görüntüleyici (Viewer)</option>
-                                                <option value="editor">Editör (Editor)</option>
-                                                <option value="admin">Yönetici (Admin)</option>
+                                                <option value="viewer">{t('roles.viewer')}</option>
+                                                <option value="editor">{t('roles.editor')}</option>
+                                                <option value="admin">{t('roles.admin')}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -175,27 +175,27 @@ export const AdminUsers: React.FC = () => {
 
                                 {/* PROFILE DETAILS */}
                                 <div>
-                                    <h4 className="text-sm font-bold text-orange-400 uppercase tracking-widest mb-4 border-l-4 border-orange-500 pl-3">Profil Detayları</h4>
+                                    <h4 className="text-sm font-bold text-orange-400 uppercase tracking-widest mb-4 border-l-4 border-orange-500 pl-3">{t('admin.users.profileDetails')}</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div><label className="block text-xs text-slate-500 mb-1">Ad Soyad</label><input value={editingUser.fullName || ''} onChange={e => setEditingUser({...editingUser, fullName: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" /></div>
-                                        <div><label className="block text-xs text-slate-500 mb-1">Unvan / Meslek</label><input value={editingUser.jobTitle || ''} onChange={e => setEditingUser({...editingUser, jobTitle: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" placeholder="Örn: Harita Mühendisi" /></div>
-                                        <div><label className="block text-xs text-slate-500 mb-1">Telefon</label><input value={editingUser.phone || ''} onChange={e => setEditingUser({...editingUser, phone: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" /></div>
-                                        <div><label className="block text-xs text-slate-500 mb-1">E-Posta</label><input value={editingUser.email || ''} onChange={e => setEditingUser({...editingUser, email: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" /></div>
-                                        <div className="md:col-span-2"><label className="block text-xs text-slate-500 mb-1">Adres / Lokasyon</label><input value={editingUser.address || ''} onChange={e => setEditingUser({...editingUser, address: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" /></div>
+                                        <div><label className="block text-xs text-slate-500 mb-1">{t('admin.users.fullName')}</label><input value={editingUser.fullName || ''} onChange={e => setEditingUser({...editingUser, fullName: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" /></div>
+                                        <div><label className="block text-xs text-slate-500 mb-1">{t('admin.users.jobTitle')}</label><input value={editingUser.jobTitle || ''} onChange={e => setEditingUser({...editingUser, jobTitle: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" placeholder="Ex: Engineer" /></div>
+                                        <div><label className="block text-xs text-slate-500 mb-1">{t('admin.users.phone')}</label><input value={editingUser.phone || ''} onChange={e => setEditingUser({...editingUser, phone: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" /></div>
+                                        <div><label className="block text-xs text-slate-500 mb-1">{t('admin.users.email')}</label><input value={editingUser.email || ''} onChange={e => setEditingUser({...editingUser, email: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" /></div>
+                                        <div className="md:col-span-2"><label className="block text-xs text-slate-500 mb-1">{t('admin.users.address')}</label><input value={editingUser.address || ''} onChange={e => setEditingUser({...editingUser, address: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white focus:border-orange-500 focus:outline-none" /></div>
                                     </div>
                                 </div>
 
                                 {/* PERMISSIONS MATRIX */}
                                 <div>
                                     <div className="flex justify-between items-end mb-4">
-                                        <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-widest border-l-4 border-emerald-500 pl-3">Yetkilendirme</h4>
-                                        <button type="button" onClick={toggleAllPermissions} className="text-xs text-blue-400 hover:text-white underline">Tümünü Seç / Kaldır</button>
+                                        <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-widest border-l-4 border-emerald-500 pl-3">{t('admin.users.authMatrix')}</h4>
+                                        <button type="button" onClick={toggleAllPermissions} className="text-xs text-blue-400 hover:text-white underline">{t('admin.users.selectAll')}</button>
                                     </div>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {Object.entries(groupedPermissions).map(([groupName, perms]) => (
-                                            <div key={groupName} className="bg-iha-900 border border-iha-700 rounded-xl p-4">
-                                                <h5 className="text-xs font-bold text-slate-400 mb-3 uppercase border-b border-iha-800 pb-2">{groupName}</h5>
+                                        {Object.entries(groupedPermissions).map(([groupKey, perms]) => (
+                                            <div key={groupKey} className="bg-iha-900 border border-iha-700 rounded-xl p-4">
+                                                <h5 className="text-xs font-bold text-slate-400 mb-3 uppercase border-b border-iha-800 pb-2">{t(groupKey)}</h5>
                                                 <div className="space-y-2">
                                                     {perms.map(perm => (
                                                         <label key={perm.id} className="flex items-center gap-3 cursor-pointer group">
@@ -203,7 +203,7 @@ export const AdminUsers: React.FC = () => {
                                                                 {editingUser.permissions?.includes(perm.id) && <span className="material-symbols-outlined text-sm text-white font-bold">check</span>}
                                                             </div>
                                                             <input type="checkbox" className="hidden" checked={editingUser.permissions?.includes(perm.id)} onChange={() => togglePermission(perm.id)} />
-                                                            <span className={`text-sm ${editingUser.permissions?.includes(perm.id) ? 'text-white font-medium' : 'text-slate-400'}`}>{perm.label}</span>
+                                                            <span className={`text-sm ${editingUser.permissions?.includes(perm.id) ? 'text-white font-medium' : 'text-slate-400'}`}>{t(perm.labelKey)}</span>
                                                         </label>
                                                     ))}
                                                 </div>
@@ -215,8 +215,8 @@ export const AdminUsers: React.FC = () => {
                         </div>
 
                         <div className="p-6 border-t border-iha-700 bg-iha-900/50 rounded-b-2xl flex justify-end gap-3">
-                            <button type="button" onClick={() => setIsUserModalOpen(false)} className="px-6 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition-colors">İptal</button>
-                            <button type="submit" form="userForm" className="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20 transition-colors">Kaydet</button>
+                            <button type="button" onClick={() => setIsUserModalOpen(false)} className="px-6 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition-colors">{t('common.cancel')}</button>
+                            <button type="submit" form="userForm" className="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20 transition-colors">{t('common.save')}</button>
                         </div>
                     </div>
                 </div>

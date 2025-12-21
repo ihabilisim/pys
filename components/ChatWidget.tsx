@@ -53,17 +53,10 @@ const locationTool: FunctionDeclaration = {
 
 export const ChatWidget: React.FC = () => {
   // Access global chat state from UI Context
-  const { isChatOpen, toggleChat } = useUI();
+  const { isChatOpen, toggleChat, t } = useUI();
   
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Merhaba! Ben IHA Proje Asistanı. Şantiye verilerine hakimim. "Beton durumu nedir?", "P-500 nerede?" veya "İSG raporunu ver" gibi sorular sorabilirsiniz.',
-      sender: 'bot',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   
   // Speech States
@@ -88,6 +81,18 @@ export const ChatWidget: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isChatOpen]);
+
+  // Set initial welcome message based on current language
+  useEffect(() => {
+      setMessages([
+        {
+          id: '1',
+          text: t('chat.welcome'),
+          sender: 'bot',
+          timestamp: new Date()
+        }
+      ]);
+  }, [language, t]);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -200,7 +205,7 @@ export const ChatWidget: React.FC = () => {
                 if (call.name === 'navigate_ui') {
                     const tabId = (call.args as any).tabId;
                     setActiveTab(tabId);
-                    responseText = language === 'tr' ? `${tabId} ekranına gidiliyor...` : `Navigating to ${tabId}...`;
+                    responseText = t('chat.navigating').replace('{tab}', tabId);
                 } else if (call.name === 'find_location') {
                     const pointName = (call.args as any).pointName;
                     // Basit bir arama yapalım
@@ -208,19 +213,15 @@ export const ChatWidget: React.FC = () => {
                     if (found) {
                         setActiveTab('topo');
                         setSelectedPolyId(found.id);
-                        responseText = language === 'tr' 
-                            ? `Haritada ${found.polygonNo} noktasına odaklanıldı. (Konum: ${found.km})`
-                            : `Focused on ${found.polygonNo} on the map.`;
+                        responseText = t('chat.found').replace('{point}', found.polygonNo);
                     } else {
-                        responseText = language === 'tr' 
-                            ? `${pointName} noktası veritabanında bulunamadı.` 
-                            : `Point ${pointName} not found.`;
+                        responseText = t('chat.notFound').replace('{point}', pointName);
                     }
                 }
             }
         } else if (!responseText) {
             // Eğer tool call yoksa ve text boşsa fallback
-            responseText = language === 'tr' ? 'Anlaşıldı, ancak şu an veriye ulaşamıyorum.' : 'Understood, but I cannot access data right now.';
+            responseText = t('chat.fallback');
         }
 
         // 5. Bot Mesajını Ekle
@@ -236,7 +237,7 @@ export const ChatWidget: React.FC = () => {
         console.error("Gemini Error:", error);
         const errorMsg: Message = {
             id: (Date.now() + 1).toString(),
-            text: language === 'tr' ? 'Bağlantı hatası oluştu. Lütfen tekrar deneyin.' : 'Connection error. Please try again.',
+            text: t('chat.error'),
             sender: 'bot',
             timestamp: new Date()
         };
@@ -249,7 +250,7 @@ export const ChatWidget: React.FC = () => {
   if (!isChatOpen) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 md:left-76 z-50 flex flex-col items-start transition-all duration-300">
+    <div className="fixed bottom-4 left-4 md:left-76 z-[60] flex flex-col items-start transition-all duration-300">
       {/* Error Toast specific to Chat */}
       {micError && (
           <div className="mb-2 bg-red-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2">

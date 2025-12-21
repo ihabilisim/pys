@@ -41,6 +41,16 @@ export interface User {
   permissions: Permission[];
 }
 
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  secure: boolean;
+  fromName: string;
+  fromEmail: string;
+}
+
 export interface AppSettings {
   defaultBridgePath: string;
   defaultCulvertPath: string;
@@ -59,5 +69,6 @@ export interface AppSettings {
   copyrightText: LocalizedString; 
   privacyText: LocalizedString; 
   termsText: LocalizedString; 
-  version: string; 
+  version: string;
+  smtp: SmtpConfig; // Added SMTP Config
 }

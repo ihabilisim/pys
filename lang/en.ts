@@ -43,6 +43,93 @@ export const en = {
     adminUploadHint: "You can upload from the admin panel.",
     noPermission: "You do not have permission for this action."
   },
+  auth: {
+    loginTitle: "Welcome Back",
+    loginSubtitle: "Please enter your details to sign in.",
+    registerTitle: "Create Account",
+    registerSubtitle: "Fill in the details below to join the system.",
+    registerButton: "Sign Up",
+    registerSuccess: "Account created successfully. You can now login.",
+    username: "Username",
+    password: "Password",
+    confirmPassword: "Confirm Password",
+    fullName: "Full Name",
+    emailPlaceholder: "Email Address",
+    forgotPassword: "Forgot Password?",
+    loginButton: "Login",
+    back: "Go Back",
+    loginError: "Invalid username or password.",
+    passwordMismatch: "Passwords do not match.",
+    contactSupport: "Can't login? Contact IT Support.",
+    copyright: "IHA IT - All rights reserved.",
+    sending: "Sending...",
+    sendLink: "Send Link",
+    resetTitle: "Reset Password",
+    resetDesc: "Enter your email and we'll send you a reset link."
+  },
+  profile: {
+    title: "My Profile",
+    changePhoto: "Change",
+    fullName: "Full Name",
+    phone: "Phone",
+    email: "Email",
+    role: "Title / Role",
+    update: "Update",
+    logout: "Logout",
+    authorizedAreas: "Authorized Areas",
+    authDesc: "Quickly access modules defined in your system permissions.",
+    noAuth: "No specific permissions defined.",
+    helpTitle: "Need Help?",
+    helpDesc: "Contact IT for permission changes.",
+    uploading: "Uploading profile photo...",
+    success: "Profile updated successfully.",
+    photoSuccess: "Profile photo updated.",
+    logoutConfirm: "Are you sure you want to log out?"
+  },
+  permissions: {
+    group_system: "System",
+    group_site: "Site Management",
+    group_resources: "Resources",
+    group_planning: "Planning",
+    group_technical: "Technical",
+    group_media: "Media",
+    manage_users: "User Management",
+    manage_settings: "General Settings",
+    manage_daily_log: "Daily Logs",
+    manage_stats: "Stats & HSE",
+    manage_machinery: "Machinery Park",
+    manage_materials: "Materials & BoQ",
+    manage_timeline: "Timeline",
+    manage_map: "Map & Survey",
+    manage_files: "PVLA & Files",
+    manage_quality: "Quality (NCR/Snag)",
+    manage_drone: "Drone Data",
+    manage_notifications: "Announcements"
+  },
+  roles: {
+    admin: "Administrator",
+    editor: "Editor",
+    viewer: "Viewer"
+  },
+  excel: {
+    titlePolygon: "Bulk Polygon Upload",
+    titleKm: "Bulk KM Marker Upload",
+    pasteArea: "Paste data here (CTRL+V)...",
+    detectedRows: "rows detected",
+    waiting: "Waiting for data...",
+    upload: "Upload",
+    errorRoad: "Please select an Alignment.",
+    errorPoly: "No polygon data detected.",
+    errorKm: "No KM data detected. Format: KM | Lat | Lng",
+    roadAlignment: "Alignment",
+    sectionType: "Section Type",
+    types: {
+      MAIN: "Main Road (2+2)",
+      SECONDARY: "Side Road (1+1)",
+      RAMP: "Ramp",
+      INTERSECTION: "Intersection"
+    }
+  },
   topo: {
     title: "Topographic Map & Survey",
     subtitle: "Sibiu - Făgăraș Lot 1 Site Data",
@@ -76,7 +163,45 @@ export const en = {
     lane: "Lane",
     width: "Width"
   },
+  concrete: {
+    title: "SMART CONCRETE ASSISTANT",
+    green: "Conditions suitable for pouring.",
+    greenD: "Apply standard procedures.",
+    yellow: "Pour with precautions.",
+    yellowCold: "Cold weather. Curing and cover required.",
+    yellowWind: "Windy. Risk of plastic shrinkage cracking.",
+    red: "Pouring not recommended / Risky!",
+    redCold: "High frost risk. Heating mandatory.",
+    redRain: "Rainy weather. Surface damage risk.",
+    redWind: "Excessive wind. Crane operation risky.",
+    ts: "EN 206"
+  },
+  chat: {
+    welcome: "Hello! I am IHA Project Assistant. I know site data. Ask \"What is concrete status?\", \"Where is P-500?\" or \"Give me HSE report\".",
+    navigating: "Navigating to {tab}...",
+    found: "Focused on {point} on the map.",
+    notFound: "Point {point} not found.",
+    error: "Connection error. Please try again.",
+    fallback: "Understood, but I cannot access data right now."
+  },
   admin: {
+    layout: {
+      categoryAdded: "Category added successfully.",
+      layerUploaded: "GeoJSON layer uploaded successfully.",
+      selectCategory: "Please select a category first.",
+      alignmentAdded: "Alignment added to map.",
+      uploadError: "Upload Error:"
+    },
+    pvla: {
+      structureAdded: "{type} added.",
+      selectStructure: "Please select a structure.",
+      fileUploaded: "File uploaded successfully.",
+      filesUploaded: "{count} files uploaded successfully.",
+      columnAdded: "Column added.",
+      columnUpdated: "Column updated.",
+      rowAdded: "Row added.",
+      missingInfo: "Please enter structure and location."
+    },
     dashboard: {
       title: "Control Panel",
       tabs: {
@@ -165,10 +290,40 @@ export const en = {
     },
     users: {
       title: "User Management",
+      subtitle: "Personnel profiles and system access permissions",
       newUser: "New User",
+      editUser: "Edit User",
+      accountInfo: "Account Information",
+      profileDetails: "Profile Details",
+      authMatrix: "Authorization",
       username: "Username",
-      role: "Role",
-      password: "Password"
+      password: "Password",
+      role: "System Role",
+      fullName: "Full Name",
+      jobTitle: "Title / Job",
+      phone: "Phone",
+      email: "Email",
+      address: "Address / Location",
+      selectAll: "Select / Deselect All",
+      permDefined: "PERMISSIONS DEFINED",
+      saveSuccess: "User profile updated",
+      createSuccess: "New user created"
+    },
+    infra: {
+        titleNew: "Add New Infrastructure Project",
+        titleEdit: "Edit Infrastructure Project",
+        projectName: "Project Name",
+        link: "Link (Optional)"
+    },
+    shortcuts: {
+        titleNew: "Add New Shortcut",
+        titleEdit: "Edit Shortcut",
+        name: "Shortcut Name",
+        sourceType: "Source Type",
+        fileUpload: "Upload File",
+        externalLink: "External Link",
+        fileSelect: "Current file will be kept if not changed.",
+        success: "Shortcut saved."
     }
   },
   mapTools: {
@@ -233,6 +388,8 @@ export const en = {
     droneActive: "Drone Image Active",
     lastFlight: "Last Flight",
     userLocation: "Your Location",
+    locationError: "Location not found",
+    cutFill: "Cut/Fill Analysis",
     tools: {
       profile: "Profile",
       distance: "Distance",

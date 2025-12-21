@@ -1,6 +1,7 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Permission } from '../types';
+import { apiService } from '../services/api';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -22,42 +23,70 @@ export const useAuth = () => {
   return context;
 };
 
-const USER_STORAGE_KEY = 'IHA_SIBIU_USER_SESSION';
+const SESSION_KEY = 'IHA_SESSION_ID';
 
-// Fixed: Changed children prop to optional to prevent TypeScript error in consumer components (e.g. App.tsx)
 export const AuthProvider = ({ children }: { children?: ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem(USER_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+
+  // 1. Uygulama açılışında oturum kontrolü ve taze veri çekme
+  useEffect(() => {
+      const initSession = async () => {
+          const sessionId = localStorage.getItem(SESSION_KEY);
+          if (sessionId) {
+              const freshUser = await apiService.getUser(sessionId);
+              if (freshUser) {
+                  setCurrentUser(freshUser);
+              } else {
+                  // Kullanıcı DB'den silinmişse oturumu kapat
+                  localStorage.removeItem(SESSION_KEY);
+              }
+          }
+      };
+      initSession();
+  }, []);
 
   const login = (user: User) => {
     setCurrentUser(user);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+    // Sadece ID'yi sakla, tüm objeyi değil.
+    localStorage.setItem(SESSION_KEY, user.id);
   };
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(SESSION_KEY);
   };
 
-  const addUser = (user: Omit<User, 'id'>) => {
+  const addUser = async (user: Omit<User, 'id'>) => {
     const newUser = { ...user, id: Math.random().toString(36).substr(2, 9) };
     setUsers(prev => [...prev, newUser]);
+    await apiService.upsertUser(newUser);
   };
 
-  const updateUser = (id: string, updated: Partial<User>) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updated } : u));
-    if (currentUser?.id === id) {
-      const updatedUser = { ...currentUser, ...updated };
-      setCurrentUser(updatedUser);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+  const updateUser = async (id: string, updated: Partial<User>) => {
+    let updatedUserObj: User | null = null;
+
+    setUsers(prev => prev.map(u => {
+      if (u.id === id) {
+        updatedUserObj = { ...u, ...updated };
+        return updatedUserObj;
+      }
+      return u;
+    }));
+
+    if (currentUser?.id === id && updatedUserObj) {
+      setCurrentUser(updatedUserObj);
+      // LocalStorage'ı güncellemiyoruz, sadece state ve DB
+    }
+
+    if (updatedUserObj) {
+        await apiService.upsertUser(updatedUserObj);
     }
   };
 
-  const deleteUser = (id: string) => {
+  const deleteUser = async (id: string) => {
     setUsers(prev => prev.filter(u => u.id !== id));
+    await apiService.deleteUser(id);
   };
 
   const hasPermission = (permission: Permission) => {

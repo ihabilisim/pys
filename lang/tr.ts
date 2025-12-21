@@ -43,6 +43,93 @@ export const tr = {
     adminUploadHint: "Admin panelinden yükleyebilirsiniz.",
     noPermission: "Bu işlem için yetkiniz bulunmamaktadır."
   },
+  auth: {
+    loginTitle: "Hoş Geldiniz",
+    loginSubtitle: "Devam etmek için lütfen hesabınıza giriş yapın.",
+    registerTitle: "Hesap Oluştur",
+    registerSubtitle: "Sisteme dahil olmak için aşağıdaki bilgileri doldurun.",
+    registerButton: "Kayıt Ol",
+    registerSuccess: "Hesabınız başarıyla oluşturuldu. Giriş yapabilirsiniz.",
+    username: "Kullanıcı Adı",
+    password: "Şifre",
+    confirmPassword: "Şifre (Tekrar)",
+    fullName: "Ad Soyad",
+    emailPlaceholder: "E-posta Adresi",
+    forgotPassword: "Şifremi Unuttum?",
+    loginButton: "Giriş Yap",
+    back: "Geri Dön",
+    loginError: "Kullanıcı adı veya şifre hatalı.",
+    passwordMismatch: "Girdiğiniz şifreler birbiriyle uyuşmuyor.",
+    contactSupport: "Giriş yapamıyor musunuz? IT Destek ile iletişime geçin.",
+    copyright: "IHA Bilişim - Tüm hakları saklıdır.",
+    sending: "Gönderiliyor...",
+    sendLink: "Bağlantı Gönder",
+    resetTitle: "Şifre Sıfırlama",
+    resetDesc: "E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim."
+  },
+  profile: {
+    title: "Profilim",
+    changePhoto: "Değiştir",
+    fullName: "Ad Soyad",
+    phone: "Telefon",
+    email: "E-Posta",
+    role: "Ünvan / Rol",
+    update: "Güncelle",
+    logout: "Çıkış",
+    authorizedAreas: "Yetkili Alanlar",
+    authDesc: "Sistem yetkilerinize tanımlanmış modüllere buradan hızlıca erişebilirsiniz.",
+    noAuth: "Özel yetki tanımlanmamış.",
+    helpTitle: "Yardım mı lazım?",
+    helpDesc: "Yetki değişiklikleri için IT birimi ile görüşünüz.",
+    uploading: "Profil fotoğrafı yükleniyor...",
+    success: "Profil bilgileri başarıyla güncellendi.",
+    photoSuccess: "Profil fotoğrafı güncellendi.",
+    logoutConfirm: "Oturumu kapatmak istediğinize emin misiniz?"
+  },
+  permissions: {
+    group_system: "Sistem",
+    group_site: "Saha Yönetimi",
+    group_resources: "Kaynaklar",
+    group_planning: "Planlama",
+    group_technical: "Teknik",
+    group_media: "Medya",
+    manage_users: "Kullanıcı Yönetimi",
+    manage_settings: "Genel Ayarlar",
+    manage_daily_log: "Günlük Raporlar",
+    manage_stats: "İstatistik & İSG",
+    manage_machinery: "Makine Parkı",
+    manage_materials: "Malzeme & BoQ",
+    manage_timeline: "İş Programı",
+    manage_map: "Harita & Topoğrafya",
+    manage_files: "PVLA & Dosyalar",
+    manage_quality: "Kalite (NCR/Snag)",
+    manage_drone: "Drone Verileri",
+    manage_notifications: "Duyurular"
+  },
+  roles: {
+    admin: "Sistem Yöneticisi",
+    editor: "Proje Editörü",
+    viewer: "Ziyaretçi"
+  },
+  excel: {
+    titlePolygon: "Poligon Toplu Yükleme",
+    titleKm: "KM Taşı Toplu Yükleme",
+    pasteArea: "Veriyi buraya yapıştırın (CTRL+V)...",
+    detectedRows: "satır algılandı",
+    waiting: "Veri bekleniyor...",
+    upload: "Yükle",
+    errorRoad: "Lütfen bir Güzergah (Alignment) seçiniz.",
+    errorPoly: "Polygon verisi algılanamadı.",
+    errorKm: "KM verisi algılanamadı. Format: KM | Lat | Lng",
+    roadAlignment: "Güzergah (Alignment)",
+    sectionType: "Kesit Tipi",
+    types: {
+      MAIN: "Ana Yol (2+2)",
+      SECONDARY: "Yan Yol (1+1)",
+      RAMP: "Rampa",
+      INTERSECTION: "Kavşak Kolu"
+    }
+  },
   topo: {
     title: "Topografik Harita & Survey",
     subtitle: "Sibiu - Făgăraș Lot 1 Saha Verileri",
@@ -76,7 +163,45 @@ export const tr = {
     lane: "Şerit",
     width: "Genişlik"
   },
+  concrete: {
+    title: "AKILLI BETON ASİSTANI",
+    green: "Beton dökümü için koşullar uygun.",
+    greenD: "Standart prosedürleri uygulayınız.",
+    yellow: "Önlem alarak döküm yapınız.",
+    yellowCold: "Soğuk hava. Kürleme ve örtü gereklidir.",
+    yellowWind: "Rüzgarlı. Plastik rötre çatlağı riski.",
+    red: "Döküm önerilmez / Riskli!",
+    redCold: "Don riski yüksek. Isıtma zorunlu.",
+    redRain: "Yağışlı hava. Yüzey bozulabilir.",
+    redWind: "Aşırı rüzgar. Vinç operasyonu riskli.",
+    ts: "TS EN 206"
+  },
+  chat: {
+    welcome: "Merhaba! Ben IHA Proje Asistanı. Şantiye verilerine hakimim. \"Beton durumu nedir?\", \"P-500 nerede?\" veya \"İSG raporunu ver\" gibi sorular sorabilirsiniz.",
+    navigating: "{tab} ekranına gidiliyor...",
+    found: "Haritada {point} noktasına odaklanıldı.",
+    notFound: "{point} noktası veritabanında bulunamadı.",
+    error: "Bağlantı hatası oluştu. Lütfen tekrar deneyin.",
+    fallback: "Anlaşıldı, ancak şu an veriye ulaşamıyorum."
+  },
   admin: {
+    layout: {
+      categoryAdded: "Kategori başarıyla eklendi.",
+      layerUploaded: "GeoJSON katmanı başarıyla yüklendi.",
+      selectCategory: "Lütfen önce bir kategori seçiniz.",
+      alignmentAdded: "Yol ekseni haritaya eklendi.",
+      uploadError: "Yükleme hatası:"
+    },
+    pvla: {
+      structureAdded: "{type} eklendi.",
+      selectStructure: "Lütfen yapı seçiniz.",
+      fileUploaded: "Dosya başarıyla yüklendi.",
+      filesUploaded: "{count} dosya başarıyla yüklendi.",
+      columnAdded: "Sütun eklendi.",
+      columnUpdated: "Sütun güncellendi.",
+      rowAdded: "Satır eklendi.",
+      missingInfo: "Lütfen yapı ve lokasyon giriniz."
+    },
     dashboard: {
       title: "Kontrol Paneli",
       tabs: {
@@ -165,10 +290,40 @@ export const tr = {
     },
     users: {
       title: "Kullanıcı Yönetimi",
+      subtitle: "Personel profilleri ve sistem erişim yetkileri",
       newUser: "Yeni Kullanıcı",
+      editUser: "Kullanıcı Düzenle",
+      accountInfo: "Hesap Bilgileri",
+      profileDetails: "Profil Detayları",
+      authMatrix: "Yetkilendirme",
       username: "Kullanıcı Adı",
-      role: "Rol",
-      password: "Şifre"
+      password: "Şifre",
+      role: "Sistem Rolü",
+      fullName: "Ad Soyad",
+      jobTitle: "Unvan / Meslek",
+      phone: "Telefon",
+      email: "E-Posta",
+      address: "Adres / Lokasyon",
+      selectAll: "Tümünü Seç / Kaldır",
+      permDefined: "YETKİ TANIMLI",
+      saveSuccess: "Kullanıcı profili güncellendi",
+      createSuccess: "Yeni kullanıcı oluşturuldu"
+    },
+    infra: {
+        titleNew: "Yeni Altyapı Projesi Ekle",
+        titleEdit: "Altyapı Projesini Düzenle",
+        projectName: "Proje Adı",
+        link: "Bağlantı Linki (Opsiyonel)"
+    },
+    shortcuts: {
+        titleNew: "Yeni Kısayol Ekle",
+        titleEdit: "Kısayolu Düzenle",
+        name: "Kısayol Adı",
+        sourceType: "Kaynak Tipi",
+        fileUpload: "Dosya Yükle",
+        externalLink: "Dış Bağlantı",
+        fileSelect: "Dosya seçmezseniz mevcut dosya korunur.",
+        success: "Kısayol kaydedildi."
     }
   },
   mapTools: {
@@ -237,6 +392,7 @@ export const tr = {
     droneActive: "Drone Görüntüsü Aktif",
     lastFlight: "Son Uçuş",
     userLocation: "Sizin Konumunuz",
+    locationError: "Konum bulunamadı",
     cutFill: "Kazı/Dolgu Analizi",
     tools: {
       profile: "Kesit",

@@ -23,13 +23,27 @@ export const DashboardContent: React.FC = () => {
     return () => clearInterval(timer);
   }, [slides]);
 
-  // HSE Calculation
+  // HSE Calculation (Fixed Stability)
   useEffect(() => {
     const calculateDays = () => {
-        const lastIncident = new Date(data.dashboardWidgets.hse.lastIncidentDate).getTime();
-        const now = new Date().getTime();
-        const diff = now - lastIncident;
-        const days = diff > 0 ? Math.floor(diff / (1000 * 60 * 60 * 24)) : 0;
+        if (!data.dashboardWidgets.hse.lastIncidentDate) return;
+
+        // Olay tarihi
+        const incidentDate = new Date(data.dashboardWidgets.hse.lastIncidentDate);
+        // Saati sıfırla (Günün başlangıcı)
+        incidentDate.setHours(0, 0, 0, 0);
+
+        // Bugün
+        const today = new Date();
+        // Saati sıfırla (Günün başlangıcı)
+        today.setHours(0, 0, 0, 0);
+
+        // Farkı hesapla (Milisaniye cinsinden)
+        const diffTime = today.getTime() - incidentDate.getTime();
+        
+        // Gün sayısına çevir (Math.round, saat dilimi/DST sapmalarını düzeltir)
+        const days = diffTime > 0 ? Math.round(diffTime / (1000 * 60 * 60 * 24)) : 0;
+        
         setHseDays(days);
     };
     calculateDays(); 

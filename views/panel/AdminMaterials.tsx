@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
-/* Import useAuth to access current user data */
 import { useAuth } from '../../context/AuthContext';
+import { useUI } from '../../context/UIContext';
 import { Language, LocalizedString } from '../../types';
 
 export const AdminMaterials: React.FC = () => {
     const { data, addStockItem, updateStockItem, deleteStockItem, addBoQItem, updateBoQItem, deleteBoQItem } = useData();
-    /* Use Auth context for currentUser */
     const { currentUser } = useAuth();
+    const { t } = useUI();
     const [formLang, setFormLang] = useState<Language>('tr');
 
     const [newStock, setNewStock] = useState<{name: LocalizedString, quantity: number, unit: string, critical: number, icon: string}>({
@@ -19,7 +19,7 @@ export const AdminMaterials: React.FC = () => {
     });
 
     if (!currentUser || (!currentUser.permissions.includes('manage_materials') && currentUser.role !== 'admin')) {
-        return <div className="text-slate-500 p-8 text-center">Bu alana erişim yetkiniz yok.</div>;
+        return <div className="text-slate-500 p-8 text-center">{t('common.noPermission')}</div>;
     }
 
     const handleAddStock = (e: React.FormEvent) => {
@@ -61,7 +61,7 @@ export const AdminMaterials: React.FC = () => {
             <div className="bg-iha-800 p-6 rounded-2xl border border-iha-700">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-purple-500">inventory_2</span>
-                    Malzeme Stok Takibi
+                    {t('materials.stockTitle')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     {data.stocks.map(stock => (
@@ -70,7 +70,7 @@ export const AdminMaterials: React.FC = () => {
                                 <span className="material-symbols-outlined text-slate-500">{stock.icon}</span>
                                 <div>
                                     <p className="font-bold text-white text-sm">{stock.name[formLang]}</p>
-                                    <p className="text-xs text-slate-500">Kritik: {stock.criticalLevel} {stock.unit}</p>
+                                    <p className="text-xs text-slate-500">{t('materials.critical')}: {stock.criticalLevel} {stock.unit}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -88,18 +88,18 @@ export const AdminMaterials: React.FC = () => {
                 </div>
                 <div className="bg-iha-900/50 p-4 rounded-xl border border-iha-700 flex flex-wrap gap-2 items-end">
                     <div className="flex-1 min-w-[150px]">
-                        <label className="block text-[10px] text-slate-500 mb-1">Malzeme Adı ({formLang})</label>
+                        <label className="block text-[10px] text-slate-500 mb-1">{t('common.title')} ({formLang})</label>
                         <input value={newStock.name[formLang]} onChange={e => setNewStock({...newStock, name: { tr: e.target.value, en: e.target.value, ro: e.target.value }})} className="w-full bg-iha-800 border border-iha-700 rounded p-2 text-white text-sm" />
                     </div>
                     <div className="w-24">
-                        <label className="block text-[10px] text-slate-500 mb-1">Miktar</label>
+                        <label className="block text-[10px] text-slate-500 mb-1">{t('common.quantity')}</label>
                         <input type="number" value={newStock.quantity} onChange={e => setNewStock({...newStock, quantity: parseFloat(e.target.value)})} className="w-full bg-iha-800 border border-iha-700 rounded p-2 text-white text-sm" />
                     </div>
                     <div className="w-24">
-                        <label className="block text-[10px] text-slate-500 mb-1">Kritik</label>
+                        <label className="block text-[10px] text-slate-500 mb-1">{t('materials.critical')}</label>
                         <input type="number" value={newStock.critical} onChange={e => setNewStock({...newStock, critical: parseFloat(e.target.value)})} className="w-full bg-iha-800 border border-iha-700 rounded p-2 text-white text-sm" />
                     </div>
-                    <button type="button" onClick={handleAddStock} className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-bold text-sm h-10">Ekle</button>
+                    <button type="button" onClick={handleAddStock} className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-bold text-sm h-10">{t('common.add')}</button>
                 </div>
             </div>
 
@@ -107,17 +107,17 @@ export const AdminMaterials: React.FC = () => {
             <div className="bg-iha-800 p-6 rounded-2xl border border-iha-700">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-blue-500">request_quote</span>
-                    Sözleşme Kalemleri (BoQ)
+                    {t('materials.boqTitle')}
                 </h3>
                 <div className="overflow-x-auto mb-4">
                     <table className="w-full text-left text-sm text-slate-300">
                         <thead className="bg-iha-900 text-slate-500 text-xs">
                             <tr>
-                                <th className="p-3">Poz No</th>
-                                <th className="p-3">Tanım</th>
-                                <th className="p-3">Toplam (Sözleşme)</th>
-                                <th className="p-3">Tamamlanan</th>
-                                <th className="p-3 text-right">İşlem</th>
+                                <th className="p-3">{t('materials.boqCode')}</th>
+                                <th className="p-3">{t('materials.boqItem')}</th>
+                                <th className="p-3">{t('materials.boqTotal')}</th>
+                                <th className="p-3">{t('materials.boqDone')}</th>
+                                <th className="p-3 text-right">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-iha-700">
@@ -144,18 +144,18 @@ export const AdminMaterials: React.FC = () => {
                 </div>
                 <div className="bg-iha-900/50 p-4 rounded-xl border border-iha-700 flex flex-wrap gap-2 items-end">
                     <div className="w-24">
-                        <label className="block text-[10px] text-slate-500 mb-1">Poz No</label>
+                        <label className="block text-[10px] text-slate-500 mb-1">{t('materials.boqCode')}</label>
                         <input value={newBoQ.code} onChange={e => setNewBoQ({...newBoQ, code: e.target.value})} className="w-full bg-iha-800 border border-iha-700 rounded p-2 text-white text-sm" />
                     </div>
                     <div className="flex-1 min-w-[150px]">
-                        <label className="block text-[10px] text-slate-500 mb-1">Tanım ({formLang})</label>
+                        <label className="block text-[10px] text-slate-500 mb-1">{t('materials.boqItem')} ({formLang})</label>
                         <input value={newBoQ.name[formLang]} onChange={e => setNewBoQ({...newBoQ, name: { tr: e.target.value, en: e.target.value, ro: e.target.value }})} className="w-full bg-iha-800 border border-iha-700 rounded p-2 text-white text-sm" />
                     </div>
                     <div className="w-32">
-                        <label className="block text-[10px] text-slate-500 mb-1">Toplam Miktar</label>
+                        <label className="block text-[10px] text-slate-500 mb-1">{t('materials.boqTotal')}</label>
                         <input type="number" value={newBoQ.total} onChange={e => setNewBoQ({...newBoQ, total: parseFloat(e.target.value)})} className="w-full bg-iha-800 border border-iha-700 rounded p-2 text-white text-sm" />
                     </div>
-                    <button type="button" onClick={handleAddBoQ} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm h-10">Ekle</button>
+                    <button type="button" onClick={handleAddBoQ} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm h-10">{t('common.add')}</button>
                 </div>
             </div>
         </div>

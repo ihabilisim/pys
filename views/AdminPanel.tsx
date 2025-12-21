@@ -17,6 +17,8 @@ import { AdminPvla } from './panel/AdminPvla';
 import { AdminSettings } from './panel/AdminSettings';
 import { AdminUsers } from './panel/AdminUsers';
 import { AdminDrone } from './panel/AdminDrone'; 
+import { AdminChangelog } from './panel/AdminChangelog';
+import { Admin3DMonitoring } from './panel/Admin3DMonitoring'; // Import New Module
 
 interface AdminPanelProps {
   onLogout: () => void;
@@ -43,18 +45,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, onPreview }) =
       case 'shortcuts': return <AdminShortcuts />;
       case 'layout': return <AdminLayout />;
       case 'topo': return <AdminTopo />;
+      case '3d-monitoring': return <Admin3DMonitoring />; // Render New Module
       case 'infra': return <AdminInfra />;
       case 'pvla': return <AdminPvla />;
       case 'settings': return <AdminSettings />;
       case 'users': return <AdminUsers />;
       case 'drone': return <AdminDrone />;
+      case 'changelog': return <AdminChangelog />;
       default: return null;
     }
   };
 
   return (
     <div className="flex h-screen bg-iha-900 text-slate-200 overflow-hidden">
-        {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+        {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
         
         <Sidebar 
             activeTab={activeTab} 

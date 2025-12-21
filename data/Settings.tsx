@@ -1,5 +1,5 @@
 
-import type { AppSettings, MenuConfig, UtilityCategory, TopoData } from '../types';
+import { AppSettings, MenuConfig, UtilityCategory, TopoData, MenuItemConfig } from '../types';
 
 export const DEMO_SETTINGS: AppSettings = {
     defaultBridgePath: '/PVLA/Bridge/Scan',
@@ -19,7 +19,16 @@ export const DEMO_SETTINGS: AppSettings = {
     copyrightText: { tr: 'Tüm Hakları Saklıdır.', en: 'All Rights Reserved.', ro: 'Toate Drepturile Rezervate.' },
     privacyText: { tr: 'Gizlilik Politikası', en: 'Privacy Policy', ro: 'Politica de Confidențialitate' },
     termsText: { tr: 'Kullanım Koşulları', en: 'Terms of Service', ro: 'Termeni și Condiții' },
-    version: 'v2.4.2-beta'
+    version: 'v2.4.3',
+    smtp: {
+        host: 'smtp.office365.com',
+        port: 587,
+        user: '',
+        pass: '',
+        secure: true,
+        fromName: 'IHA PYS System',
+        fromEmail: 'noreply@makyol.com'
+    }
 };
 
 export const DEMO_MENU: MenuConfig = {
@@ -34,9 +43,29 @@ export const DEMO_MENU: MenuConfig = {
     machinery: { tr: 'Makine Parkı', en: 'Machinery', ro: 'Parc Utilaje' }
 };
 
-// Start with empty categories or basic ones
+export const DEFAULT_MENU_STRUCTURE: MenuItemConfig[] = [
+    { id: 'dashboard', order: 0, visible: true, icon: 'dashboard', label: { tr: 'Kontrol Paneli', en: 'Dashboard', ro: 'Panou de Control' } },
+    { id: 'topo', order: 1, visible: true, icon: 'landscape', label: { tr: 'Topografik Harita', en: 'Topographic Map', ro: 'Hartă Topografică' } },
+    { 
+        id: 'pvla', 
+        order: 2, 
+        visible: true, 
+        icon: 'view_in_ar', 
+        label: { tr: 'PVLA Yönetimi', en: 'PVLA Management', ro: 'Management PVLA' },
+        children: [
+            { id: 'pvla-matrix', order: 0, visible: true, icon: 'grid_on', label: { tr: 'İlerleme Matrisi', en: 'Progress Matrix', ro: 'Matrice Progres' } },
+            { id: 'pvla-files', order: 1, visible: true, icon: 'folder_open', label: { tr: 'İmzalı Dosyalar', en: 'Signed Files', ro: 'Fișiere Semnate' } },
+            { id: 'pvla-3d', order: 2, visible: true, icon: 'view_in_ar', label: { tr: '3D Dijital Twin', en: '3D Digital Twin', ro: '3D Digital Twin' } }
+        ]
+    },
+    { id: 'drone', order: 3, visible: true, icon: 'flight', label: { tr: 'Drone Görüntüleri', en: 'Drone Flights', ro: 'Zboruri Dronă' } },
+    { id: 'timeloc', order: 4, visible: true, icon: 'query_stats', label: { tr: 'Zaman-Konum', en: 'Time-Location', ro: 'Timp-Locație' } },
+    { id: 'materials', order: 5, visible: true, icon: 'inventory_2', label: { tr: 'Malzeme & BoQ', en: 'Materials & BoQ', ro: 'Materiale & BoQ' } },
+    { id: 'machinery', order: 6, visible: true, icon: 'agriculture', label: { tr: 'Makine Parkı', en: 'Machinery', ro: 'Parc Utilaje' } },
+    { id: 'infra', order: 7, visible: true, icon: 'foundation', label: { tr: 'Alt Yapı & Layout', en: 'Infra & Layout', ro: 'Infra & Layout' } },
+];
+
 export const DEMO_UTILITY_CATS: UtilityCategory[] = [
-    // Categories kept blank or minimal for fresh start
     { id: 'general', name: { tr: 'Genel', en: 'General', ro: 'General' }, color: '#94a3b8' } 
 ];
 

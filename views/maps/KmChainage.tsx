@@ -1,16 +1,17 @@
 
 import React from 'react';
-import { CrossSectionModal } from '../../components/Analytics';
+import { CrossSectionModal } from '../../components/modals/CrossSectionModal';
+import { ChainageMarker } from '../../types';
 
 interface KmChainageProps {
-    selectedKm: string | null;
+    selectedMarker: ChainageMarker | null;
     onClose: () => void;
 }
 
-export const KmChainageModal: React.FC<KmChainageProps> = ({ selectedKm, onClose }) => {
-    if (!selectedKm) return null;
+export const KmChainageModal: React.FC<KmChainageProps> = ({ selectedMarker, onClose }) => {
+    if (!selectedMarker) return null;
 
     return (
-        <CrossSectionModal km={selectedKm} onClose={onClose} />
+        <CrossSectionModal marker={selectedMarker} onClose={onClose} />
     );
 };

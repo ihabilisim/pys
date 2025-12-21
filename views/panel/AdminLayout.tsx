@@ -9,7 +9,7 @@ import { apiService } from '../../services/api';
 export const AdminLayout: React.FC = () => {
     const { data, addExternalLayer, deleteExternalLayer, addUtilityCategory, deleteUtilityCategory, toggleLayerVisibility } = useData();
     const { currentUser } = useAuth();
-    const { showToast } = useUI();
+    const { showToast, t } = useUI();
     
     type LayoutSubTab = 'infra' | 'alignment';
     const [subTab, setSubTab] = useState<LayoutSubTab>('infra');
@@ -22,37 +22,34 @@ export const AdminLayout: React.FC = () => {
     const [newCatColor, setNewCatColor] = useState('#3b82f6');
     const [isUploading, setIsUploading] = useState(false);
 
-    // --- ROAD AXIS STATES ---
-    // const [editLineId, setEditLineId] = useState<string | null>(null); // Unused for now
-
     if (!currentUser || (!currentUser.permissions.includes('manage_map') && currentUser.role !== 'admin')) {
-        return <div className="text-slate-500 p-8 text-center">Bu alana erişim yetkiniz yok.</div>;
+        return <div className="text-slate-500 p-8 text-center">{t('common.noPermission')}</div>;
     }
 
     const handleAddCategory = () => {
         if (!newCatName.tr) return;
         addUtilityCategory({ name: newCatName, color: newCatColor });
         setNewCatName({ tr: '', en: '', ro: '' });
-        showToast('Kategori eklendi.');
+        showToast(t('admin.layout.categoryAdded'));
     };
 
     const handleLayerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             if (!selectedCategory) {
-                showToast('Lütfen önce bir kategori seçiniz.', 'error');
+                showToast(t('admin.layout.selectCategory'), 'error');
                 e.target.value = '';
                 return;
             }
 
             const file = e.target.files[0];
             setIsUploading(true);
-            showToast('Dosya yükleniyor...', 'info');
+            showToast(t('common.loading'), 'info');
 
             // 1. Upload to Supabase Storage
             const { publicUrl, error } = await apiService.uploadFile(file, 'app-assets', 'utilities');
 
             if (error) {
-                showToast(`Yükleme Hatası: ${error}`, 'error');
+                showToast(`${t('admin.layout.uploadError')} ${error}`, 'error');
                 setIsUploading(false);
                 e.target.value = '';
                 return;
@@ -78,7 +75,7 @@ export const AdminLayout: React.FC = () => {
                     });
                     
                     setNewLayerName('');
-                    showToast('GeoJSON katmanı başarıyla yüklendi.');
+                    showToast(t('admin.layout.layerUploaded'));
                 } catch (error) {
                     showToast('Geçersiz GeoJSON dosyası.', 'error');
                 } finally {
@@ -94,13 +91,13 @@ export const AdminLayout: React.FC = () => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setIsUploading(true);
-            showToast('Alignment dosyası yükleniyor...', 'info');
+            showToast(t('common.loading'), 'info');
 
             // 1. Upload to Supabase
             const { publicUrl, error } = await apiService.uploadFile(file, 'app-assets', 'alignments');
 
             if (error) {
-                showToast(`Yükleme Hatası: ${error}`, 'error');
+                showToast(`${t('admin.layout.uploadError')} ${error}`, 'error');
                 setIsUploading(false);
                 e.target.value = '';
                 return;
@@ -128,7 +125,7 @@ export const AdminLayout: React.FC = () => {
                             isVisible: true,
                             url: publicUrl || undefined
                         });
-                        showToast('Yol ekseni haritaya eklendi.');
+                        showToast(t('admin.layout.alignmentAdded'));
                     } catch (e) {
                         console.warn('Could not parse alignment JSON for map display');
                         showToast('GeoJSON okunamadı, ancak dosya yüklendi.', 'error');
@@ -168,7 +165,7 @@ export const AdminLayout: React.FC = () => {
                             <div className="flex gap-2 mb-6">
                                 <input placeholder="Kategori Adı (TR)" value={newCatName.tr} onChange={e => setNewCatName({ tr: e.target.value, en: e.target.value, ro: e.target.value })} className="flex-1 bg-iha-900 border border-iha-700 rounded-lg p-2.5 text-white text-sm" />
                                 <input type="color" value={newCatColor} onChange={e => setNewCatColor(e.target.value)} className="h-10 w-10 bg-transparent border-0 cursor-pointer" />
-                                <button onClick={handleAddCategory} className="bg-orange-600 text-white px-4 rounded-lg font-bold">Ekle</button>
+                                <button onClick={handleAddCategory} className="bg-orange-600 text-white px-4 rounded-lg font-bold">{t('common.add')}</button>
                             </div>
                             <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
                                 {data.utilityCategories.map(cat => (
@@ -201,7 +198,7 @@ export const AdminLayout: React.FC = () => {
                                     {isUploading ? (
                                         <div className="flex flex-col items-center">
                                             <span className="material-symbols-outlined text-4xl text-blue-500 animate-spin">sync</span>
-                                            <p className="text-xs text-blue-400 mt-2 font-bold uppercase">Yükleniyor...</p>
+                                            <p className="text-xs text-blue-400 mt-2 font-bold uppercase">{t('common.loading')}</p>
                                         </div>
                                     ) : (
                                         <>
@@ -265,7 +262,7 @@ export const AdminLayout: React.FC = () => {
                                 {isUploading ? (
                                     <div className="flex flex-col items-center justify-center h-full">
                                         <span className="material-symbols-outlined text-4xl text-emerald-500 animate-spin">sync</span>
-                                        <p className="text-emerald-400 text-xs font-bold mt-2">YÜKLENİYOR...</p>
+                                        <p className="text-emerald-400 text-xs font-bold mt-2">{t('common.loading')}</p>
                                     </div>
                                 ) : (
                                     <>

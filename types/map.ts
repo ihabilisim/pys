@@ -3,6 +3,7 @@ import { LocalizedString } from './core';
 
 export type DataStatus = 'ACTIVE' | 'PASSIVE' | 'DRAFT';
 export type PolygonStatus = 'ACTIVE' | 'LOST' | 'DAMAGED';
+export type RoadType = 'MAIN' | 'SECONDARY' | 'RAMP' | 'INTERSECTION';
 
 export interface WeatherData {
   temp: number;
@@ -83,6 +84,8 @@ export interface ChainageMarker {
     lat: number;
     lng: number;
     align: 'start' | 'center' | 'end';
+    roadName?: string; // Linked Alignment Name
+    type?: RoadType;   // Determines Cross Section Type
 }
 
 export interface SiteIssue {

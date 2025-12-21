@@ -18,9 +18,9 @@ const PERMISSION_MAP: Record<DashboardSubTab, Permission> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const { data, updateDashboardWidgets, updateDailyLog, addMachinery, deleteMachinery, updateTimelinePhase, updateSiteIssue, deleteSiteIssue, addNotification, updateNotification, deleteNotification } = useData();
+    const { data, updateDashboardWidgets, updateDailyLog, addMachinery, deleteMachinery, updateTimelinePhase, updateSiteIssue, deleteSiteIssue, addNotification, updateNotification, deleteNotification, loadSiteIssues, loadNotifications } = useData();
     const { currentUser } = useAuth();
-    const { showToast, t } = useUI(); // Added t for translations
+    const { showToast, t } = useUI(); 
     
     const [dashboardTab, setDashboardTab] = useState<DashboardSubTab>('daily');
     const [formLang, setFormLang] = useState<Language>('tr');
@@ -49,6 +49,12 @@ export const AdminDashboard: React.FC = () => {
         type: 'Yaralanmalı Kaza',
         description: ''
     });
+
+    // Lazy load logic for tabs
+    useEffect(() => {
+        if (dashboardTab === 'quality') loadSiteIssues();
+        if (dashboardTab === 'general') loadNotifications();
+    }, [dashboardTab]);
 
     useEffect(() => {
         setTempHSE(data.dashboardWidgets.hse);
