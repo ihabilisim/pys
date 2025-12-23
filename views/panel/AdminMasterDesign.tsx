@@ -36,6 +36,16 @@ export const AdminMasterDesign: React.FC = () => {
         if (fileInput) fileInput.value = '';
     };
 
+    // Helper to read file as text using Promise
+    const readFileAsText = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsText(file);
+        });
+    };
+
     const handleGeoJsonUpload = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!geoFile) {
@@ -49,40 +59,32 @@ export const AdminMasterDesign: React.FC = () => {
             const { publicUrl, error } = await apiService.uploadFile(geoFile, 'app-assets', 'Alignments/GeoJSON');
             if (error) throw new Error(error);
 
-            // 2. Dosya İçeriğini Oku
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                try {
-                    const geoJsonData = JSON.parse(event.target?.result as string);
-                    
-                    // 3. Tasarım Katmanını Ekle (Yeni Tabloya)
-                    const layerName = geoName || geoFile.name.replace(/\.[^/.]+$/, "");
-                    
-                    addDesignLayer({
-                        name: layerName,
-                        type: 'GEOJSON',
-                        data: geoJsonData,
-                        color: '#f59e0b', // Default orange/amber for roads
-                        opacity: 1,
-                        isVisible: true
-                    });
+            // 2. Dosya İçeriğini Oku (Async/Await)
+            const textContent = await readFileAsText(geoFile);
+            const geoJsonData = JSON.parse(textContent);
+            
+            // 3. Tasarım Katmanını Ekle (Yeni Tabloya)
+            const layerName = geoName || geoFile.name.replace(/\.[^/.]+$/, "");
+            
+            addDesignLayer({
+                name: layerName,
+                type: 'GEOJSON',
+                data: geoJsonData,
+                color: '#f59e0b', // Default orange/amber for roads
+                opacity: 1,
+                isVisible: true
+            });
 
-                    showToast('Yol ekseni tasarım katmanı olarak eklendi.', 'success');
-                    setGeoName('');
-                    setGeoFile(null);
-                    const fileInput = document.getElementById('geojson-upload') as HTMLInputElement;
-                    if (fileInput) fileInput.value = '';
-
-                } catch (parseError) {
-                    showToast('Geçersiz GeoJSON formatı.', 'error');
-                } finally {
-                    setIsGeoUploading(false);
-                }
-            };
-            reader.readAsText(geoFile);
+            showToast('Yol ekseni tasarım katmanı olarak eklendi.', 'success');
+            setGeoName('');
+            setGeoFile(null);
+            const fileInput = document.getElementById('geojson-upload') as HTMLInputElement;
+            if (fileInput) fileInput.value = '';
 
         } catch (err: any) {
-            showToast(`Hata: ${err.message}`, 'error');
+            console.error("Upload Error:", err);
+            showToast(err.message || 'Dosya işlenirken hata oluştu.', 'error');
+        } finally {
             setIsGeoUploading(false);
         }
     };
