@@ -1,5 +1,5 @@
 
-export const ro = {
+export const core = {
   common: {
     loading: "Se încarcă...",
     save: "Salvează",
@@ -298,7 +298,7 @@ export const ro = {
       email: "E-mail",
       address: "Adresă / Locație",
       selectAll: "Selectează / Deselectează Tot",
-      permDefined: "PERMISIUNI DEFINITE",
+      permDefined: "PERMISSIONS DEFINED",
       saveSuccess: "Profil utilizator actualizat",
       createSuccess: "Utilizator nou creat"
     },

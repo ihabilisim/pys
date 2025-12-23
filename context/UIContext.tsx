@@ -1,7 +1,8 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Language, Toast } from '../types';
 import { translations } from '../lang';
+import { languageService } from '../services/languageService';
 
 interface UIContextType {
   language: Language;
@@ -24,12 +25,22 @@ export const useUI = () => {
   return context;
 };
 
-// Fixed: Changed children prop to optional to prevent TypeScript error in consumer components (e.g. App.tsx)
 export const UIProvider = ({ children }: { children?: ReactNode }) => {
   const [language, setLanguage] = useState<Language>('tr');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  
+  // Stores SQL overrides: { tr: { 'key': 'value' }, en: ... }
+  const [customTranslations, setCustomTranslations] = useState<Record<string, Record<string, string>>>({});
+
+  useEffect(() => {
+      const loadOverrides = async () => {
+          const overrides = await languageService.fetchTranslations();
+          setCustomTranslations(overrides);
+      };
+      loadOverrides();
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -46,11 +57,17 @@ export const UIProvider = ({ children }: { children?: ReactNode }) => {
   };
 
   const t = (key: string): string => {
+    // 1. Check SQL Overrides first (Dynamic)
+    if (customTranslations[language] && customTranslations[language][key]) {
+        return customTranslations[language][key];
+    }
+
+    // 2. Check File-based (Fallback)
     const keys = key.split('.');
     let value: any = translations[language];
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) value = value[k];
-      else return key;
+      else return key; // Return key if not found
     }
     return value as string;
   };

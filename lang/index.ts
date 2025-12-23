@@ -9,5 +9,4 @@ export const translations = {
   ro
 };
 
-// Type definition to ensure type safety in components
 export type TranslationKey = keyof typeof tr;

@@ -146,28 +146,68 @@ export const DashboardContent: React.FC = () => {
           {data.dashboardWidgets.dailyLog && <DailyLogWidget log={data.dashboardWidgets.dailyLog} lang={language} />}
       </div>
 
-      {/* TIMELINE WIDGET */}
+      {/* TIMELINE WIDGET - RESTORED */}
       <div className="bg-iha-800 rounded-2xl border border-iha-700 p-6 overflow-hidden shadow-xl">
-          <div className="flex justify-between items-center mb-6"><h3 className="text-white font-bold text-lg flex items-center gap-2"><span className="material-symbols-outlined text-yellow-500">timeline</span>{t('dashboard.timeline')}</h3><span className="text-xs text-slate-500 uppercase tracking-widest">Phase 1</span></div>
+          <div className="flex justify-between items-center mb-6">
+              <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                  <span className="material-symbols-outlined text-yellow-500">timeline</span>
+                  {t('dashboard.timeline')}
+              </h3>
+              <span className="text-xs text-slate-500 uppercase tracking-widest bg-iha-900 px-2 py-1 rounded border border-iha-700">Project Master Schedule</span>
+          </div>
+          
           <div className="relative">
-              <div className="absolute top-1/2 left-0 w-full h-1 bg-iha-900 -translate-y-1/2 rounded-full hidden md:block"></div>
-              <div className="flex overflow-x-auto gap-8 pb-4 md:pb-0 md:justify-between hide-scrollbar snap-x relative z-10">
-                   {data.timelinePhases.map((phase, index) => {
-                       const isWeatherRisk = weather && weather.code >= 50 && (phase.label.en.includes('Earth') || phase.label.en.includes('Asphalt') || phase.label.en.includes('Concrete'));
-                       return (
-                       <div key={phase.id} className="flex flex-col items-center min-w-[120px] snap-center group">
-                           <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 z-10 transition-all duration-300 shadow-xl ${phase.status === 'COMPLETED' ? 'bg-green-500 border-iha-800 text-iha-900' : phase.status === 'IN_PROGRESS' ? (isWeatherRisk ? 'bg-iha-900 border-red-500 text-red-500 animate-pulse' : 'bg-iha-900 border-blue-500 text-blue-500') : 'bg-iha-900 border-slate-700 text-slate-600'}`}>
-                               {phase.status === 'COMPLETED' && <span className="material-symbols-outlined text-lg font-bold">check</span>}
-                               {phase.status === 'IN_PROGRESS' && (isWeatherRisk ? <span className="material-symbols-outlined text-lg">warning</span> : <span className="material-symbols-outlined text-lg">sync</span>)}
-                               {phase.status === 'PENDING' && <span className="text-xs font-bold">{index + 1}</span>}
-                           </div>
-                           <div className="mt-4 text-center">
-                               <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${phase.status === 'IN_PROGRESS' ? 'text-blue-400' : phase.status === 'COMPLETED' ? 'text-green-400' : 'text-slate-500'}`}>{phase.label[language]}</p>
-                               <span className={`text-[10px] px-2 py-0.5 rounded-full border ${phase.status === 'COMPLETED' ? 'bg-green-500/10 border-green-500/30 text-green-400' : phase.status === 'IN_PROGRESS' ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-iha-900 border-iha-700 text-slate-400'}`}>{phase.percentage}%</span>
-                               {isWeatherRisk && phase.status === 'IN_PROGRESS' && <p className="text-[9px] text-red-400 mt-1 font-bold">HAVA RİSKİ</p>}
-                           </div>
+              {/* Connector Line */}
+              <div className="absolute top-1/2 left-0 w-full h-1 bg-iha-900 -translate-y-1/2 rounded-full hidden md:block border-t border-b border-iha-700/50"></div>
+              
+              <div className="flex overflow-x-auto gap-8 pb-4 md:pb-0 md:justify-between hide-scrollbar snap-x relative z-10 px-2">
+                   {data.timelinePhases && data.timelinePhases.length > 0 ? (
+                       data.timelinePhases.map((phase, index) => {
+                           // Weather Risk Logic: If phase involves earthworks/concrete/asphalt and weather is bad
+                           const isWeatherRisk = weather && weather.code >= 50 && 
+                                (phase.label.en.toLowerCase().includes('earth') || 
+                                 phase.label.en.toLowerCase().includes('asphalt') || 
+                                 phase.label.en.toLowerCase().includes('concrete'));
+                           
+                           return (
+                               <div key={phase.id} className="flex flex-col items-center min-w-[140px] snap-center group">
+                                   <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 z-10 transition-all duration-300 shadow-xl ${phase.status === 'COMPLETED' ? 'bg-green-500 border-iha-800 text-iha-900 shadow-green-900/20' : phase.status === 'IN_PROGRESS' ? (isWeatherRisk ? 'bg-iha-900 border-red-500 text-red-500 animate-pulse' : 'bg-iha-900 border-blue-500 text-blue-500 shadow-blue-500/20') : 'bg-iha-900 border-slate-700 text-slate-600'}`}>
+                                       {phase.status === 'COMPLETED' && <span className="material-symbols-outlined text-2xl font-bold">check</span>}
+                                       {phase.status === 'IN_PROGRESS' && (isWeatherRisk ? <span className="material-symbols-outlined text-2xl">warning</span> : <span className="material-symbols-outlined text-2xl">sync</span>)}
+                                       {phase.status === 'PENDING' && <span className="text-sm font-bold">{index + 1}</span>}
+                                   </div>
+                                   
+                                   <div className="mt-4 text-center bg-iha-900/50 p-2 rounded-xl border border-iha-700/50 w-full hover:bg-iha-900 transition-colors">
+                                       <p className={`text-xs font-bold uppercase tracking-wider mb-1 truncate ${phase.status === 'IN_PROGRESS' ? 'text-blue-400' : phase.status === 'COMPLETED' ? 'text-green-400' : 'text-slate-500'}`}>
+                                           {phase.label[language]}
+                                       </p>
+                                       <div className="flex justify-between items-center text-[9px] text-slate-500 font-mono mt-1">
+                                            <span>{phase.startDate.split('-').slice(0,2).join('.')}</span>
+                                            <span>-</span>
+                                            <span>{phase.endDate.split('-').slice(0,2).join('.')}</span>
+                                       </div>
+                                       <div className="w-full bg-iha-800 rounded-full h-1.5 mt-2 overflow-hidden border border-iha-700/50">
+                                            <div 
+                                                className={`h-full rounded-full ${phase.status === 'COMPLETED' ? 'bg-green-500' : phase.status === 'IN_PROGRESS' ? 'bg-blue-500' : 'bg-slate-700'}`} 
+                                                style={{ width: `${phase.percentage}%` }}
+                                            ></div>
+                                       </div>
+                                       <p className="text-[10px] text-right mt-1 font-bold text-slate-400">{phase.percentage}%</p>
+                                       
+                                       {isWeatherRisk && phase.status === 'IN_PROGRESS' && (
+                                           <div className="mt-1 bg-red-500/20 text-red-400 text-[9px] px-1 py-0.5 rounded font-bold uppercase border border-red-500/30 flex items-center justify-center gap-1">
+                                               <span className="material-symbols-outlined text-[10px]">cloud_off</span> Hava Riski
+                                           </div>
+                                       )}
+                                   </div>
+                               </div>
+                           );
+                       })
+                   ) : (
+                       <div className="w-full text-center text-slate-500 py-8 text-sm italic">
+                           Zaman çizelgesi verisi bulunamadı.
                        </div>
-                   )})}
+                   )}
               </div>
           </div>
       </div>

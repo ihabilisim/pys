@@ -24,6 +24,7 @@ export const useDataPersistence = (setUsers: (users: User[]) => void) => {
 
     // --- DEBOUNCED SAVE (Config & JSONs) ---
     // Watches specific heavy objects to trigger auto-save
+    // Removed migrated entities (stocks, boq, timeline, shortcuts, slides) as they now use direct SQL CRUD
     useEffect(() => {
         if (!isLoaded) return;
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -38,16 +39,9 @@ export const useDataPersistence = (setUsers: (users: User[]) => void) => {
         data.menuConfig,
         data.menuStructure,
         data.dashboardWidgets, 
-        data.timelinePhases, 
-        data.stocks, 
-        data.boqItems, 
-        data.infraProjects, 
-        data.shortcuts, 
-        data.slides, 
-        data.droneFlights, 
         data.landXmlFiles, 
         data.chainageMarkers,
-        data.changelog, // EKLENDİ: Artık değişiklik günlüğündeki değişimler de kaydı tetikleyecek.
+        data.changelog, 
         isLoaded
     ]);
 

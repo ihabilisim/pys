@@ -1,5 +1,7 @@
 
-export const tr = {
+// This file contains the remaining translations that haven't been split into modules yet.
+// In the future, move auth, dashboard, etc. to their own files.
+export const core = {
   common: {
     loading: "Yükleniyor...",
     save: "Kaydet",
@@ -484,6 +486,7 @@ export const tr = {
   infra: {
     noProjects: "Henüz yayınlanmış altyapı projesi bulunmamaktadır."
   },
+
   timeloc: {
     title: "Zaman - Konum Diyagramı (Time-Location)"
   }

@@ -1,7 +1,7 @@
 
 import { LocalizedString, UserProfile, User, AppSettings } from './core';
 import { ProductionStat, MachineryStat, DailyLog, TimelinePhase, InfrastructureProject, ShortcutItem, StockItem, BoQItem, PVLAIndexConfig, PVLAStructure, PVLAFile, MatrixColumn, ProgressRow, DroneFlight, ChangelogEntry } from './project';
-import { TopoItem, PolygonPoint, ExternalMapLayer, UtilityCategory, SitePhoto, ChainageMarker, SiteIssue, MapNote, TopoData, LandXMLFile } from './map';
+import { TopoItem, PolygonPoint, ExternalMapLayer, UtilityCategory, SitePhoto, ChainageMarker, SiteIssue, MapNote, TopoData, LandXMLFile, DesignLayer } from './map';
 
 export type ViewMode = 'DASHBOARD' | 'LOGIN' | 'ADMIN';
 export type Language = 'tr' | 'en' | 'ro';
@@ -69,6 +69,7 @@ export interface AppData {
   polygonPoints: PolygonPoint[];
   
   externalLayers: ExternalMapLayer[]; 
+  designLayers: DesignLayer[]; // NEW: Separate list for Master Design alignments
   utilityCategories: UtilityCategory[];
   landXmlFiles: LandXMLFile[]; 
 

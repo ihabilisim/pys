@@ -18,7 +18,8 @@ import { AdminSettings } from './panel/AdminSettings';
 import { AdminUsers } from './panel/AdminUsers';
 import { AdminDrone } from './panel/AdminDrone'; 
 import { AdminChangelog } from './panel/AdminChangelog';
-import { Admin3DMonitoring } from './panel/Admin3DMonitoring'; // Import New Module
+import { AdminStructureInventory } from './panel/AdminStructureInventory';
+import { AdminMasterDesign } from './panel/AdminMasterDesign'; // New Import
 
 interface AdminPanelProps {
   onLogout: () => void;
@@ -45,7 +46,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, onPreview }) =
       case 'shortcuts': return <AdminShortcuts />;
       case 'layout': return <AdminLayout />;
       case 'topo': return <AdminTopo />;
-      case '3d-monitoring': return <Admin3DMonitoring />; // Render New Module
+      case 'structure-inventory': return <AdminStructureInventory />;
+      case 'master-design': return <AdminMasterDesign />; // New Case
       case 'infra': return <AdminInfra />;
       case 'pvla': return <AdminPvla />;
       case 'settings': return <AdminSettings />;

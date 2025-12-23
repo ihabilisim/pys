@@ -13,7 +13,7 @@ interface TopNavbarProps {
 export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick }) => {
     const { data } = useData();
     const { currentUser } = useAuth();
-    const { language, activeTab, setActiveTab } = useUI();
+    const { language, setLanguage, activeTab, setActiveTab } = useUI();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [hoveredMenuId, setHoveredMenuId] = useState<string | null>(null);
 
@@ -116,6 +116,33 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick })
 
                     {/* 3. RIGHT: ACTIONS (Compact) */}
                     <div className="hidden md:flex items-center gap-3">
+                        {/* Language Switcher */}
+                        <div className="flex items-center bg-iha-800 rounded-lg p-0.5 border border-iha-700">
+                            <button 
+                                onClick={() => setLanguage('tr')} 
+                                className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'tr' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`}
+                                title="Türkçe"
+                            >
+                                <span className="text-sm leading-none">🇹🇷</span>
+                            </button>
+                            <button 
+                                onClick={() => setLanguage('en')} 
+                                className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'en' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`}
+                                title="English"
+                            >
+                                <span className="text-sm leading-none">🇬🇧</span>
+                            </button>
+                            <button 
+                                onClick={() => setLanguage('ro')} 
+                                className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'ro' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`}
+                                title="Română"
+                            >
+                                <span className="text-sm leading-none">🇷🇴</span>
+                            </button>
+                        </div>
+
+                        <div className="h-4 w-px bg-iha-700 mx-1"></div>
+
                         <button className="w-7 h-7 rounded-full hover:bg-iha-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors relative border border-transparent hover:border-iha-700">
                             <span className="material-symbols-outlined text-[18px]">notifications</span>
                             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse border border-iha-900"></span>
@@ -139,7 +166,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick })
                     </div>
 
                     {/* MOBILE MENU TOGGLE */}
-                    <div className="xl:hidden flex items-center">
+                    <div className="xl:hidden flex items-center gap-3">
+                        {/* Mobile Lang Switch */}
+                        <div className="flex items-center bg-iha-800 rounded-lg p-0.5 border border-iha-700">
+                            <button 
+                                onClick={() => setLanguage(language === 'tr' ? 'en' : language === 'en' ? 'ro' : 'tr')} 
+                                className="w-7 h-6 flex items-center justify-center rounded-md text-sm leading-none"
+                            >
+                                {language === 'tr' ? '🇹🇷' : language === 'en' ? '🇬🇧' : '🇷🇴'}
+                            </button>
+                        </div>
+
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-white hover:bg-iha-800 transition-colors"

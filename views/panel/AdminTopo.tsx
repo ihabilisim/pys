@@ -13,12 +13,12 @@ export const AdminTopo: React.FC = () => {
         data, 
         addPolygonPoint, updatePolygonPoint, addBulkPolygonPoints, deletePolygonPoint, 
         addChainageMarker, updateChainageMarker, deleteChainageMarker, addBulkChainageMarkers,
-        addLandXmlFile, deleteLandXmlFile 
+        addLandXmlFile, deleteLandXmlFile, deleteMapNote 
     } = useData();
     const { currentUser } = useAuth();
-    const { showToast } = useUI();
+    const { showToast, t } = useUI();
     
-    type TopoSubTab = 'polygons' | 'km_stones' | 'landxml';
+    type TopoSubTab = 'polygons' | 'km_stones' | 'landxml' | 'notes';
     const [subTab, setSubTab] = useState<TopoSubTab>('polygons');
 
     // PAGINATION STATES
@@ -118,7 +118,6 @@ export const AdminTopo: React.FC = () => {
         }
     };
 
-    // ... (KM Stone Save Logic - Existing)
     const handleSaveKmStone = (e: React.FormEvent) => {
         e.preventDefault();
         if(!newKm.km || !newKm.lat) return;
@@ -131,7 +130,6 @@ export const AdminTopo: React.FC = () => {
         resetKmForm();
     };
 
-    // ... (LandXML Upload Logic - Existing)
     const handleLandXMLUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
@@ -161,6 +159,17 @@ export const AdminTopo: React.FC = () => {
             setIsUploading(false);
             e.target.value = '';
         }
+    };
+
+    const handleDeleteNote = async (id: string) => {
+        if(window.confirm(t('common.deleteConfirm'))) {
+            await deleteMapNote(id);
+        }
+    };
+
+    const getUserName = (userId: string) => {
+        const user = data.users.find(u => u.id === userId);
+        return user ? user.fullName : 'Bilinmeyen Kullanıcı';
     };
 
     const resetPolyForm = () => { setEditPolyId(null); setNewPoly({ no: '', roadName: '', km: '', offset: '', east: '', north: '', elev: '', lat: '', lng: '', desc: '', status: 'ACTIVE' }); };
@@ -194,9 +203,11 @@ export const AdminTopo: React.FC = () => {
                     <button onClick={() => setSubTab('landxml')} className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${subTab === 'landxml' ? 'bg-purple-600 text-white shadow-lg' : 'bg-iha-900 text-slate-500 hover:text-white'}`}>
                         <span className="material-symbols-outlined text-lg">landscape</span> BIM & LandXML
                     </button>
+                    <button onClick={() => setSubTab('notes')} className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${subTab === 'notes' ? 'bg-yellow-600 text-white shadow-lg' : 'bg-iha-900 text-slate-500 hover:text-white'}`}>
+                        <span className="material-symbols-outlined text-lg">sticky_note_2</span> Harita Notları
+                    </button>
                 </div>
                 
-                {/* UPLOAD BUTTON (Depends on Tab) */}
                 {subTab === 'polygons' && (
                     <button onClick={() => { setUploadMode('POLYGON'); setIsExcelModalOpen(true); }} className="mr-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 border border-emerald-500 transition-all shadow-lg">
                         <span className="material-symbols-outlined text-sm">table_view</span> Poligon Yükle (Excel)
@@ -212,10 +223,55 @@ export const AdminTopo: React.FC = () => {
             {/* 3. ALT KISIM: FORM VE LİSTE */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
+                {/* --- NOTES SECTION --- */}
+                {subTab === 'notes' && (
+                    <div className="lg:col-span-12 bg-iha-800 rounded-2xl border border-iha-700 shadow-xl overflow-hidden">
+                        <div className="p-4 bg-iha-900 border-b border-iha-700 font-bold text-white uppercase text-xs tracking-widest flex items-center gap-2">
+                            <span className="material-symbols-outlined text-yellow-500 text-sm">sticky_note_2</span> 
+                            Kayıtlı Harita Notları ({data.mapNotes.length})
+                        </div>
+                        <table className="w-full text-left text-sm text-slate-300">
+                            <thead className="bg-iha-900/50 text-[10px] uppercase font-bold text-slate-500">
+                                <tr>
+                                    <th className="p-4">Not İçeriği</th>
+                                    <th className="p-4">Ekleyen</th>
+                                    <th className="p-4">Tarih</th>
+                                    <th className="p-4">Konum</th>
+                                    <th className="p-4">Gizlilik</th>
+                                    <th className="p-4 text-right">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-iha-700">
+                                {data.mapNotes.map(note => (
+                                    <tr key={note.id} className="hover:bg-iha-900/50 transition-colors">
+                                        <td className="p-4 font-medium text-white max-w-md truncate" title={note.text}>{note.text}</td>
+                                        <td className="p-4 text-xs text-blue-300">{getUserName(note.author)}</td>
+                                        <td className="p-4 text-xs font-mono text-slate-500">{note.date}</td>
+                                        <td className="p-4 text-xs font-mono text-slate-500">{note.lat.toFixed(5)}, {note.lng.toFixed(5)}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${note.privacy === 'private' ? 'bg-red-500/20 text-red-400' : note.privacy === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-green-500/20 text-green-400'}`}>
+                                                {note.privacy || 'PUBLIC'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <button onClick={() => handleDeleteNote(note.id)} className="p-2 text-red-400 hover:bg-red-500/10 rounded transition-colors" title="Sil">
+                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {data.mapNotes.length === 0 && (
+                                    <tr><td colSpan={6} className="p-8 text-center text-slate-500 italic">Harita üzerinde eklenmiş not bulunmamaktadır.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
                 {/* --- LANDXML SECTION --- */}
                 {subTab === 'landxml' && (
                     <div className="lg:col-span-12 space-y-6">
-                        {/* ... Existing LandXML UI Code ... */}
+                        {/* ... LandXML UI ... */}
                         <div className="bg-gradient-to-r from-purple-900/40 to-iha-800 p-8 rounded-2xl border border-purple-500/30 shadow-xl flex flex-col md:flex-row gap-8">
                             <div className="flex-1 space-y-4">
                                 <div>
@@ -307,7 +363,7 @@ export const AdminTopo: React.FC = () => {
                 )}
 
                 {/* --- POLYGONS & KM STONES --- */}
-                {subTab !== 'landxml' && (
+                {subTab !== 'landxml' && subTab !== 'notes' && (
                     <>
                         <div className="lg:col-span-4 space-y-4">
                             {subTab === 'polygons' ? (

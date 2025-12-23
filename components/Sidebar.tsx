@@ -47,8 +47,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', order: 0, visible: true, icon: 'campaign', label: { tr: t('sidebar.dashboard'), en: 'Dashboard', ro: 'Panou' } },
     { id: 'shortcuts', order: 1, visible: true, icon: 'bookmark', label: { tr: t('sidebar.shortcuts'), en: 'Shortcuts', ro: 'Scurtături' } },
     { id: 'layout', order: 2, visible: true, icon: 'map', label: { tr: t('sidebar.layout'), en: 'Layout', ro: 'Plan' } },
+    { id: 'master-design', order: 2.5, visible: true, icon: 'design_services', label: { tr: 'Master Design', en: 'Master Design', ro: 'Master Design' } }, // NEW ITEM
     { id: 'topo', order: 3, visible: true, icon: 'landscape', label: { tr: t('sidebar.topo'), en: 'Topo', ro: 'Topo' } },
-    { id: '3d-monitoring', order: 3.5, visible: true, icon: 'view_in_ar', label: { tr: '3D Yapı Yönetimi', en: '3D Struct. Mgmt', ro: 'Admin 3D' } }, // NEW ITEM
+    { id: 'structure-inventory', order: 3.5, visible: true, icon: 'view_in_ar', label: { tr: 'Yapı Envanteri', en: 'Struct. Inventory', ro: 'Inventar Structuri' } },
     { id: 'materials', order: 4, visible: true, icon: 'inventory_2', label: { tr: t('sidebar.materials'), en: 'Materials', ro: 'Materiale' } },
     { id: 'infra', order: 5, visible: true, icon: 'foundation', label: { tr: t('sidebar.infra'), en: 'Infra', ro: 'Infra' } },
     { id: 'pvla', order: 6, visible: true, icon: 'folder_shared', label: { tr: t('sidebar.pvla'), en: 'PVLA', ro: 'PVLA' } },

@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { ProfilePoint, ElevationChart } from '../../components/Analytics';
-import { useUI } from '../../context/UIContext';
 
 export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371e3; 
@@ -14,54 +13,66 @@ export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2
     return R * c;
 };
 
-// Updated Profile Generator with Cut/Fill Logic
-export const generateDetailedProfile = (start: {lat:number, lng:number}, end: {lat:number, lng:number}): { points: ProfilePoint[], totalDist: number } => {
+// Logic to extract Z from 3D Geometry (Polygon or LineString)
+const getZFromGeoJSON = (lat: number, lng: number, geoJson: any): number | undefined => {
+    if (!geoJson) return undefined;
+
+    let closestZ: number | undefined = undefined;
+    let minDistance = 0.00015; // Precision threshold (~15m)
+
+    const features = geoJson.features || (geoJson.type === 'Feature' ? [geoJson] : []);
+
+    features.forEach((feature: any) => {
+        const geom = feature.geometry;
+        if (!geom) return;
+
+        // Handle both Polygon and LineString for 3D surfaces
+        const coords = geom.type === 'Polygon' ? geom.coordinates[0] : geom.coordinates;
+        
+        if (Array.isArray(coords)) {
+            coords.forEach((coord: any) => {
+                // GeoJSON: [lng, lat, z]
+                const d = Math.sqrt(Math.pow(coord[1] - lat, 2) + Math.pow(coord[0] - lng, 2));
+                if (d < minDistance) {
+                    minDistance = d;
+                    closestZ = coord[2];
+                }
+            });
+        }
+    });
+
+    return closestZ;
+};
+
+export const generateDetailedProfile = (
+    start: {lat:number, lng:number}, 
+    end: {lat:number, lng:number},
+    redLineData?: any
+): { points: ProfilePoint[], totalDist: number } => {
     const totalDist = calculateDistance(start.lat, start.lng, end.lat, end.lng);
-    const steps = 15; // More resolution
+    const steps = 30; 
     const points: ProfilePoint[] = [];
-
-    // Terrain Function (Existing)
-    const getElev = (lat: number, lng: number) => {
-        const base = 380;
-        const noise1 = Math.sin(lat * 3000 + lng * 3000) * 15; 
-        const noise2 = Math.cos(lat * 8000) * 5;
-        return base + Math.abs(noise1 + noise2); 
-    };
-
-    // Design Surface Function (Simulated)
-    // A smoother curve representing the road
-    const getDesignElev = (lat: number, lng: number) => {
-        const base = 385; 
-        const gradient = (lat - 45.64) * 200; // General trend
-        return base + gradient;
-    };
-
-    const startElev = getElev(start.lat, start.lng);
-    const endElev = getElev(end.lat, end.lng);
-    const startDesign = getDesignElev(start.lat, start.lng);
-    const endDesign = getDesignElev(end.lat, end.lng);
 
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+    // Simulate Realistic Terrain Variation
+    const baseElev = 386.5;
+
     for (let i = 0; i <= steps; i++) {
         const t = i / steps; 
-        const curLat = lerp(start.lat, end.lat, t);
-        const curLng = lerp(start.lng, end.lng, t);
-        
-        // Terrain calculation with noise
-        const trendElev = lerp(startElev, endElev, t);
-        const randomBump = i === 0 || i === steps ? 0 : (Math.random() - 0.5) * 8; 
-        const ngl = parseFloat((trendElev + randomBump).toFixed(2));
+        const currentLat = lerp(start.lat, end.lat, t);
+        const currentLng = lerp(start.lng, end.lng, t);
 
-        // Design calculation (Smoother)
-        const designTrend = lerp(startDesign, endDesign, t);
-        const designCurve = Math.sin(t * Math.PI) * 2; // Slight vertical curve
-        const design = parseFloat((designTrend + designCurve).toFixed(2));
+        // NGL: Base elevation with some perlin-like noise simulation
+        const currentNGL = baseElev + (Math.sin(t * 10) * 1.5) + (Math.cos(t * 5) * 0.5);
+
+        // Design: Fetch from 3D GeoJSON
+        let currentDesign = getZFromGeoJSON(currentLat, currentLng, redLineData);
 
         points.push({
             distance: t * totalDist,
-            elevation: ngl,
-            designElevation: design, // Added design Z
+            elevation: parseFloat(currentNGL.toFixed(2)),
+            designElevation: currentDesign ? parseFloat(currentDesign.toFixed(2)) : undefined,
             label: i === 0 ? 'START' : i === steps ? 'END' : undefined
         });
     }
@@ -76,7 +87,7 @@ interface SectionsToolProps {
 
 export const SectionsTool: React.FC<SectionsToolProps> = ({ data, pointsCount }) => {
     return (
-        <div className="space-y-4">
+        <div className="w-full h-full">
             {data && <ElevationChart points={data.points} totalDistance={data.totalDist} />}
         </div>
     );

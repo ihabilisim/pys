@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useUI } from '../../context/UIContext';
@@ -21,6 +21,15 @@ export const AdminLayout: React.FC = () => {
     const [newCatName, setNewCatName] = useState<LocalizedString>({ tr: '', en: '', ro: '' });
     const [newCatColor, setNewCatColor] = useState('#3b82f6');
     const [isUploading, setIsUploading] = useState(false);
+
+    // Alignment Category ID Tracker
+    const [alignmentCatId, setAlignmentCatId] = useState<string | null>(null);
+
+    // Load or Identify Alignment Category on Mount/Update
+    useEffect(() => {
+        const cat = data.utilityCategories.find(c => c.name.tr === 'Yol Eksenleri' || c.name.en === 'Road Alignments');
+        if (cat) setAlignmentCatId(cat.id);
+    }, [data.utilityCategories]);
 
     if (!currentUser || (!currentUser.permissions.includes('manage_map') && currentUser.role !== 'admin')) {
         return <div className="text-slate-500 p-8 text-center">{t('common.noPermission')}</div>;
@@ -106,17 +115,41 @@ export const AdminLayout: React.FC = () => {
             // 2. If it's GeoJSON, we can visualize it immediately as a layer
             if (file.name.endsWith('.json') || file.name.endsWith('.geojson')) {
                 const reader = new FileReader();
-                reader.onload = (event) => {
+                reader.onload = async (event) => {
                     try {
                         const geoJson = JSON.parse(event.target?.result as string);
                         
-                        // Use a specific reserved ID for road alignments so we can filter them in map
-                        const alignCatId = 'road_alignment';
+                        // FIX: Ensure valid Category Exists
+                        let targetCatId = alignmentCatId;
+                        if (!targetCatId) {
+                            // Check again in data just in case
+                            const existing = data.utilityCategories.find(c => c.name.tr === 'Yol Eksenleri');
+                            if (existing) {
+                                targetCatId = existing.id;
+                            } else {
+                                // Create new category if missing
+                                const newCat = await apiService.addUtilityCategory({
+                                    name: { tr: 'Yol Eksenleri', en: 'Road Alignments', ro: 'Aliniamente Drum' },
+                                    color: '#3b82f6'
+                                });
+                                if (newCat) {
+                                    targetCatId = newCat.id;
+                                    setAlignmentCatId(newCat.id);
+                                    // Manually push to local data list to allow filtering without refresh
+                                    // Note: This modifies the prop data reference locally, useData hook reload is better but this works for immediate UX
+                                    data.utilityCategories.push(newCat); 
+                                }
+                            }
+                        }
+
+                        if (!targetCatId) {
+                            throw new Error("Alignment kategorisi oluşturulamadı.");
+                        }
                         
                         // Add as layer
                         addExternalLayer({
                             name: file.name, 
-                            category: alignCatId, 
+                            category: targetCatId, 
                             type: 'GEOJSON',
                             data: geoJson, 
                             color: '#3b82f6', 
@@ -126,9 +159,9 @@ export const AdminLayout: React.FC = () => {
                             url: publicUrl || undefined
                         });
                         showToast(t('admin.layout.alignmentAdded'));
-                    } catch (e) {
-                        console.warn('Could not parse alignment JSON for map display');
-                        showToast('GeoJSON okunamadı, ancak dosya yüklendi.', 'error');
+                    } catch (e: any) {
+                        console.warn('Alignment Upload Error:', e);
+                        showToast(`Hata: ${e.message}`, 'error');
                     }
                 };
                 reader.readAsText(file);
@@ -228,7 +261,7 @@ export const AdminLayout: React.FC = () => {
                                                 <span className="font-bold text-white">{layer.name}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4 text-xs">{data.utilityCategories.find(c => c.id === layer.category)?.name.tr || (layer.category === 'road_alignment' ? 'Yol Ekseni' : 'Genel')}</td>
+                                        <td className="p-4 text-xs">{data.utilityCategories.find(c => c.id === layer.category)?.name.tr || 'Yol Ekseni'}</td>
                                         <td className="p-4 text-xs font-mono text-slate-500 max-w-[150px] truncate">{layer.url ? 'Supabase Storage' : 'Local Data'}</td>
                                         <td className="p-4 text-center">
                                             <button onClick={() => toggleLayerVisibility(layer.id)} className={`p-1.5 rounded-lg transition-colors ${layer.isVisible ? 'text-blue-500 bg-blue-500/10' : 'text-slate-600 hover:text-slate-400'}`}>
@@ -278,13 +311,13 @@ export const AdminLayout: React.FC = () => {
 
                     <div className="bg-iha-800 rounded-2xl border border-iha-700 shadow-xl overflow-hidden">
                          <div className="p-4 bg-iha-900 border-b border-iha-700 font-bold text-white uppercase text-xs tracking-widest">Aktif Yol Geometrileri</div>
-                         {data.externalLayers.filter(l => l.category === 'road_alignment').length > 0 ? (
+                         {data.externalLayers.filter(l => l.category === alignmentCatId).length > 0 ? (
                              <table className="w-full text-left text-sm text-slate-300">
                                  <thead className="bg-iha-900/50 text-[10px] uppercase font-bold text-slate-500">
                                      <tr><th className="p-4">Dosya Adı</th><th className="p-4">Görünürlük</th><th className="p-4 text-right">İşlem</th></tr>
                                  </thead>
                                  <tbody className="divide-y divide-iha-700">
-                                     {data.externalLayers.filter(l => l.category === 'road_alignment').map(layer => (
+                                     {data.externalLayers.filter(l => l.category === alignmentCatId).map(layer => (
                                          <tr key={layer.id}>
                                              <td className="p-4 font-bold text-white">{layer.name}</td>
                                              <td className="p-4">

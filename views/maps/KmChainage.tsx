@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CrossSectionModal } from '../../components/modals/CrossSectionModal';
+import { CrossSectionModal } from '../../components/Analytics';
 import { ChainageMarker } from '../../types';
 
 interface KmChainageProps {

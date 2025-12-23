@@ -5,13 +5,13 @@ import { apiService } from '../services/api';
 
 interface AuthContextType {
   currentUser: User | null;
-  users: User[];
+  users: User[]; // Admin list
   login: (user: User) => void;
   logout: () => void;
   setUsers: (users: User[]) => void;
-  addUser: (user: Omit<User, 'id'>) => void;
-  updateUser: (id: string, user: Partial<User>) => void;
-  deleteUser: (id: string) => void;
+  addUser: (user: Omit<User, 'id'>) => Promise<void>;
+  updateUser: (id: string, user: Partial<User>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
   hasPermission: (permission: Permission) => boolean;
 }
 
@@ -29,18 +29,23 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
 
-  // 1. Uygulama açılışında oturum kontrolü ve taze veri çekme
+  // 1. Session Init
   useEffect(() => {
       const initSession = async () => {
           const sessionId = localStorage.getItem(SESSION_KEY);
           if (sessionId) {
-              const freshUser = await apiService.getUser(sessionId);
-              if (freshUser) {
-                  setCurrentUser(freshUser);
-              } else {
-                  // Kullanıcı DB'den silinmişse oturumu kapat
-                  localStorage.removeItem(SESSION_KEY);
-              }
+              // Note: We use fetchUsers() then find, or a specific getUserById endpoint.
+              // Given the structure, fetching all users for admin context is acceptable, 
+              // but for auth, we should ideally have a single get.
+              // For now, let's assume we can find the user in the full list if we are admin,
+              // or we need a specific 'getUser' call in dbService.
+              // Since dbService.fetchUsers() is implemented, let's use that to populate the list.
+              const allUsers = await apiService.fetchUsers();
+              setUsers(allUsers);
+              
+              const found = allUsers.find(u => u.id === sessionId);
+              if (found) setCurrentUser(found);
+              else localStorage.removeItem(SESSION_KEY);
           }
       };
       initSession();
@@ -48,7 +53,6 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
   const login = (user: User) => {
     setCurrentUser(user);
-    // Sadece ID'yi sakla, tüm objeyi değil.
     localStorage.setItem(SESSION_KEY, user.id);
   };
 
@@ -57,31 +61,22 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     localStorage.removeItem(SESSION_KEY);
   };
 
+  // --- SQL CONNECTED CRUD ---
+
   const addUser = async (user: Omit<User, 'id'>) => {
-    const newUser = { ...user, id: Math.random().toString(36).substr(2, 9) };
-    setUsers(prev => [...prev, newUser]);
-    await apiService.upsertUser(newUser);
+    const newUser = await apiService.addUser(user);
+    if (newUser) {
+        setUsers(prev => [...prev, newUser]);
+    }
   };
 
   const updateUser = async (id: string, updated: Partial<User>) => {
-    let updatedUserObj: User | null = null;
+    // Optimistic Update
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updated } : u));
+    if (currentUser?.id === id) setCurrentUser(prev => prev ? { ...prev, ...updated } : null);
 
-    setUsers(prev => prev.map(u => {
-      if (u.id === id) {
-        updatedUserObj = { ...u, ...updated };
-        return updatedUserObj;
-      }
-      return u;
-    }));
-
-    if (currentUser?.id === id && updatedUserObj) {
-      setCurrentUser(updatedUserObj);
-      // LocalStorage'ı güncellemiyoruz, sadece state ve DB
-    }
-
-    if (updatedUserObj) {
-        await apiService.upsertUser(updatedUserObj);
-    }
+    // DB Update
+    await apiService.updateUser(id, updated);
   };
 
   const deleteUser = async (id: string) => {

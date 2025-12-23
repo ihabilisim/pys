@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_CONFIG } from '../config';
+import { Database } from '../types/supabase';
 
 // URL veya Key, bariz placeholder (yer tutucu) değerlerse bağlantı kurma.
 // Kendi sunucunuzun IP'si veya domaini girildiğinde burası 'true' dönecektir.
@@ -15,5 +16,5 @@ if (!isConfigured) {
 }
 
 export const supabase = isConfigured
-    ? createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key)
+    ? createClient<Database>(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key)
     : null;

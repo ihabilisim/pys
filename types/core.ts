@@ -27,6 +27,14 @@ export type Permission =
   | 'manage_quality'
   | 'manage_materials';
 
+export interface UserGroup {
+  id: string;
+  name: LocalizedString;
+  color: string;
+  icon: string;
+  permissions: Permission[];
+}
+
 export interface User {
   id: string;
   username: string;
@@ -39,6 +47,7 @@ export interface User {
   avatarUrl?: string | null;
   role: 'admin' | 'editor' | 'viewer';
   permissions: Permission[];
+  groupId?: string; // Link to UserGroup
 }
 
 export interface SmtpConfig {
@@ -70,5 +79,5 @@ export interface AppSettings {
   privacyText: LocalizedString; 
   termsText: LocalizedString; 
   version: string;
-  smtp: SmtpConfig; // Added SMTP Config
+  smtp: SmtpConfig;
 }

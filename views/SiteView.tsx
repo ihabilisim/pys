@@ -25,7 +25,7 @@ const PageContainer = ({
     noFooter = false, 
     fullWidth = false 
 }: { 
-    children: React.ReactNode, 
+    children?: React.ReactNode, 
     title?: string, 
     color?: string, 
     noFooter?: boolean, 

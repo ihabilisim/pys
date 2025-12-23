@@ -63,6 +63,18 @@ export interface ExternalMapLayer {
   url?: string; // Uploaded file URL
 }
 
+// New Interface for Road Alignments (Design Layers)
+export interface DesignLayer {
+  id: string;
+  name: string;
+  type: 'GEOJSON';
+  data: any;
+  color: string;
+  opacity: number;
+  isVisible: boolean;
+  createdAt: string;
+}
+
 export interface UtilityCategory {
     id: string;
     name: LocalizedString;
@@ -76,6 +88,7 @@ export interface SitePhoto {
     url: string;
     description: LocalizedString;
     date: string;
+    uploadedBy?: string;
 }
 
 export interface ChainageMarker {
@@ -107,6 +120,7 @@ export interface MapNote {
     text: string;
     author: string;
     date: string;
+    privacy?: 'public' | 'private' | 'admin';
 }
 
 export interface TopoData {

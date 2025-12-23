@@ -14,7 +14,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, title }) => {
     /* Use UI context for language and localization related states */
     const { language, setLanguage, activeTab, t } = useUI();
     const [currentTime, setCurrentTime] = React.useState(new Date());
-    const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
+    // const [isNotifModalOpen, setIsNotifModalOpen] = useState(false); // Feature disabled
 
     React.useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -23,11 +23,11 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, title }) => {
 
     const handleNotificationClick = () => {
         resetUnreadCount();
-        setIsNotifModalOpen(true);
+        // setIsNotifModalOpen(true); // Feature disabled
     };
 
     // Get the latest notification
-    const latestNotification = data.notifications.length > 0 ? data.notifications[0] : null;
+    // const latestNotification = data.notifications.length > 0 ? data.notifications[0] : null;
 
     return (
         <>
@@ -109,80 +109,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, title }) => {
                     </div>
                 </div>
             </header>
-
-            {/* Notification Info Window (Modal) */}
-            {isNotifModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setIsNotifModalOpen(false)}>
-                    <div className="bg-iha-800 w-full max-w-md rounded-2xl border border-iha-700 shadow-2xl overflow-hidden relative ring-1 ring-white/10 transform transition-all scale-100" onClick={e => e.stopPropagation()}>
-                        {/* Decorative Header Background */}
-                        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-transparent pointer-events-none"></div>
-                        
-                        <div className="p-6 relative z-10">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shadow-lg ${
-                                        latestNotification?.type === 'alert' 
-                                            ? 'bg-red-500/20 border-red-500/30 text-red-500' 
-                                            : latestNotification?.type === 'info' 
-                                                ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-500' 
-                                                : 'bg-blue-500/20 border-blue-500/30 text-blue-500'
-                                    }`}>
-                                        <span className="material-symbols-outlined text-2xl">
-                                            {latestNotification?.type === 'alert' ? 'warning' : latestNotification?.type === 'info' ? 'info' : 'campaign'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white">
-                                            {latestNotification ? (latestNotification.type === 'alert' ? 'Acil Bildirim' : 'Son Duyuru') : 'Bildirimler'}
-                                        </h3>
-                                        <p className="text-xs text-slate-400">Saha Yönetimi</p>
-                                    </div>
-                                </div>
-                                <button onClick={() => setIsNotifModalOpen(false)} className="text-slate-400 hover:text-white bg-iha-900/50 p-1.5 rounded-lg hover:bg-iha-700 transition-all">
-                                    <span className="material-symbols-outlined text-xl">close</span>
-                                </button>
-                            </div>
-
-                            {latestNotification ? (
-                                <div className="bg-iha-900/50 rounded-xl p-5 border border-iha-700/50">
-                                    <p className="text-white text-sm leading-relaxed font-medium">
-                                        {latestNotification.message[language]}
-                                    </p>
-                                    
-                                    <div className="mt-4 pt-4 border-t border-iha-700/50 flex justify-between items-center text-xs text-slate-500">
-                                        <div className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-sm">calendar_today</span>
-                                            {latestNotification.date}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-sm">person</span>
-                                            <span className="uppercase font-bold tracking-wider">{latestNotification.author}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-slate-500">
-                                    <span className="material-symbols-outlined text-4xl mb-2 opacity-50">notifications_off</span>
-                                    <p>{t('dashboard.noNotifications')}</p>
-                                </div>
-                            )}
-
-                            <div className="mt-6 flex gap-3">
-                                <button 
-                                    onClick={() => {
-                                        setIsNotifModalOpen(false);
-                                        const el = document.getElementById('dashboard');
-                                        if(el) el.scrollIntoView({behavior: 'smooth'});
-                                    }}
-                                    className="flex-1 bg-iha-blue hover:bg-blue-600 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-900/20"
-                                >
-                                    Tüm Bildirimleri Gör
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 };
