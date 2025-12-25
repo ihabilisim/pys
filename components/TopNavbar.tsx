@@ -1,9 +1,10 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
-import { MenuItemConfig } from '../types';
+import { MenuItemConfig, ChatConversation } from '../types';
+import { apiService } from '../services/api';
 
 interface TopNavbarProps {
     onLogin?: () => void;
@@ -11,11 +12,47 @@ interface TopNavbarProps {
 }
 
 export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick }) => {
-    const { data } = useData();
+    const { data, unreadCount: systemUnreadCount, notifications, markNotificationRead, markAllNotificationsRead } = useData();
     const { currentUser } = useAuth();
     const { language, setLanguage, activeTab, setActiveTab } = useUI();
+    
+    // States for Notification Popover
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [hoveredMenuId, setHoveredMenuId] = useState<string | null>(null);
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    
+    // Chat Unread Logic
+    const [unreadConversations, setUnreadConversations] = useState<ChatConversation[]>([]);
+    
+    const notifRef = useRef<HTMLDivElement>(null);
+
+    // Close popover when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+                setIsNotifOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Poll for Unread Chats (Or rely on subscription if implemented in ChatService context - simulating here)
+    useEffect(() => {
+        const checkUnreadChats = async () => {
+            if (!currentUser) return;
+            const convs = await apiService.fetchConversations(currentUser.id);
+            setUnreadConversations(convs.filter(c => (c.unreadCount || 0) > 0));
+        };
+        
+        if (currentUser) {
+            checkUnreadChats();
+            const interval = setInterval(checkUnreadChats, 10000); // Check every 10s
+            return () => clearInterval(interval);
+        }
+    }, [currentUser]);
+
+    const totalUnread = systemUnreadCount + unreadConversations.length;
 
     // Compute dynamic menu items from data context
     const menuItems = useMemo(() => {
@@ -28,6 +65,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick })
         setActiveTab(id);
         setIsMobileMenuOpen(false);
         setHoveredMenuId(null);
+    };
+
+    const handleNotificationClick = (type: 'CHAT' | 'SYSTEM', id: string, link?: string) => {
+        if (type === 'CHAT') {
+            setActiveTab('chat');
+            // Assuming chat module handles selecting conversation if passed in URL or state
+        } else {
+            markNotificationRead(id);
+            if (link) setActiveTab(link);
+        }
+        setIsNotifOpen(false);
     };
 
     // Recursive Dropdown Renderer for Desktop
@@ -75,7 +123,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick })
                                             : 'text-slate-300 hover:text-white'
                                     }`}
                                 >
-                                    <span className="material-symbols-outlined text-[12px] opacity-70">{child.icon}</span>
+                                    <span className="material-symbols-outlined text--[12px] opacity-70">{child.icon}</span>
                                     {child.label[language]}
                                 </button>
                             ))}
@@ -107,7 +155,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick })
                     </div>
 
                     {/* 2. CENTER: NAVIGATION (Slimmer Pill) */}
-                    {/* Header Dark (bg-iha-900), Menu Container Lighter (bg-iha-800/80) */}
                     <div className="hidden xl:flex items-center justify-center flex-1 mx-4">
                         <div className="flex items-center gap-0.5 bg-iha-800/80 border border-iha-700 rounded-full p-0.5 backdrop-blur-sm shadow-sm">
                             {menuItems.map((item) => renderDesktopMenuItem(item))}
@@ -118,35 +165,104 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick })
                     <div className="hidden md:flex items-center gap-3">
                         {/* Language Switcher */}
                         <div className="flex items-center bg-iha-800 rounded-lg p-0.5 border border-iha-700">
-                            <button 
-                                onClick={() => setLanguage('tr')} 
-                                className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'tr' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`}
-                                title="Türkçe"
-                            >
-                                <span className="text-sm leading-none">🇹🇷</span>
-                            </button>
-                            <button 
-                                onClick={() => setLanguage('en')} 
-                                className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'en' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`}
-                                title="English"
-                            >
-                                <span className="text-sm leading-none">🇬🇧</span>
-                            </button>
-                            <button 
-                                onClick={() => setLanguage('ro')} 
-                                className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'ro' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`}
-                                title="Română"
-                            >
-                                <span className="text-sm leading-none">🇷🇴</span>
-                            </button>
+                            <button onClick={() => setLanguage('tr')} className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'tr' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`} title="Türkçe"><span className="text-sm leading-none">🇹🇷</span></button>
+                            <button onClick={() => setLanguage('en')} className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'en' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`} title="English"><span className="text-sm leading-none">🇬🇧</span></button>
+                            <button onClick={() => setLanguage('ro')} className={`w-7 h-6 flex items-center justify-center rounded-md transition-all ${language === 'ro' ? 'bg-iha-700 shadow-sm ring-1 ring-slate-500' : 'opacity-50 hover:opacity-100'}`} title="Română"><span className="text-sm leading-none">🇷🇴</span></button>
                         </div>
 
                         <div className="h-4 w-px bg-iha-700 mx-1"></div>
 
-                        <button className="w-7 h-7 rounded-full hover:bg-iha-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors relative border border-transparent hover:border-iha-700">
-                            <span className="material-symbols-outlined text-[18px]">notifications</span>
-                            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse border border-iha-900"></span>
+                        {/* NEW: Chat Icon */}
+                        <button 
+                            onClick={() => setActiveTab('chat')}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors relative border border-transparent hover:border-iha-700 ${activeTab === 'chat' ? 'bg-blue-600 text-white' : 'hover:bg-iha-800 text-slate-400 hover:text-white'}`}
+                            title="Mesajlar"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">forum</span>
+                            {unreadConversations.length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center border-2 border-iha-900 animate-pulse">
+                                    {unreadConversations.length}
+                                </span>
+                            )}
                         </button>
+
+                        {/* NOTIFICATION BELL WITH POPOVER */}
+                        <div className="relative" ref={notifRef}>
+                            <button 
+                                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors relative border ${isNotifOpen ? 'bg-iha-800 text-white border-iha-700' : 'border-transparent hover:bg-iha-800 text-slate-400 hover:text-white hover:border-iha-700'}`}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">notifications</span>
+                                {totalUnread > 0 && (
+                                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse border border-iha-900"></span>
+                                )}
+                            </button>
+
+                            {/* DROPDOWN MENU */}
+                            {isNotifOpen && (
+                                <div className="absolute top-full right-0 mt-3 w-80 bg-[#1e293b]/95 backdrop-blur-xl border border-iha-700 rounded-xl shadow-2xl overflow-hidden z-[200] animate-in slide-in-from-top-2">
+                                    <div className="p-3 border-b border-iha-700 bg-iha-900/50 flex justify-between items-center">
+                                        <h4 className="text-xs font-bold text-white uppercase tracking-wider">Bildirimler</h4>
+                                        <button onClick={markAllNotificationsRead} className="text-[10px] text-blue-400 hover:text-blue-300">Tümünü Okundu İşaretle</button>
+                                    </div>
+                                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                                        
+                                        {/* 1. CHAT NOTIFICATIONS */}
+                                        {unreadConversations.map(conv => (
+                                            <div 
+                                                key={conv.id} 
+                                                onClick={() => handleNotificationClick('CHAT', conv.id)}
+                                                className="p-3 border-b border-iha-700/50 hover:bg-blue-600/10 cursor-pointer transition-colors flex gap-3"
+                                            >
+                                                <div className="relative flex-shrink-0">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                                                        {conv.otherUser?.fullName.charAt(0)}
+                                                    </div>
+                                                    <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-0.5 border border-iha-900">
+                                                        <span className="material-symbols-outlined text-[8px] text-white">chat</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-white">{conv.otherUser?.fullName}</p>
+                                                    <p className="text-[10px] text-slate-400 truncate w-48">{conv.lastMessagePreview}</p>
+                                                    <p className="text-[9px] text-blue-400 mt-1">{conv.unreadCount} yeni mesaj</p>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* 2. SYSTEM NOTIFICATIONS */}
+                                        {notifications.map(notif => (
+                                            <div 
+                                                key={notif.id} 
+                                                onClick={() => handleNotificationClick('SYSTEM', notif.id, notif.link)}
+                                                className={`p-3 border-b border-iha-700/50 cursor-pointer transition-colors flex gap-3 ${notif.isRead ? 'opacity-60 hover:opacity-100 hover:bg-white/5' : 'bg-white/5 hover:bg-white/10'}`}
+                                            >
+                                                <div className="relative flex-shrink-0">
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold ${notif.type === 'PVLA' ? 'bg-purple-600' : notif.type === 'QUALITY' ? 'bg-red-500' : 'bg-orange-500'}`}>
+                                                        <span className="material-symbols-outlined text-sm">
+                                                            {notif.type === 'PVLA' ? 'folder_open' : notif.type === 'QUALITY' ? 'flag' : 'campaign'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-white">{notif.title}</p>
+                                                    <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{notif.message}</p>
+                                                    <p className="text-[9px] text-slate-500 mt-1">{new Date(notif.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                                </div>
+                                                {!notif.isRead && <div className="w-2 h-2 rounded-full bg-blue-500 mt-1"></div>}
+                                            </div>
+                                        ))}
+
+                                        {unreadConversations.length === 0 && notifications.length === 0 && (
+                                            <div className="p-8 text-center text-slate-500">
+                                                <span className="material-symbols-outlined text-3xl opacity-30 mb-2">notifications_off</span>
+                                                <p className="text-xs">Yeni bildirim yok.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="h-4 w-px bg-iha-700 mx-1"></div>
 
@@ -167,7 +283,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onLogin, onProfileClick })
 
                     {/* MOBILE MENU TOGGLE */}
                     <div className="xl:hidden flex items-center gap-3">
-                        {/* Mobile Lang Switch */}
                         <div className="flex items-center bg-iha-800 rounded-lg p-0.5 border border-iha-700">
                             <button 
                                 onClick={() => setLanguage(language === 'tr' ? 'en' : language === 'en' ? 'ro' : 'tr')} 

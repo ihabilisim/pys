@@ -4,17 +4,24 @@ import { PolygonPoint } from '../types';
 export const logError = (context: string, error: any) => {
     if (!error) return;
     
-    const msg = error.message || (typeof error === 'string' ? error : '');
+    // Check if error is an object and try to extract message or stringify
+    let msg = '';
+    if (typeof error === 'string') {
+        msg = error;
+    } else if (error && typeof error === 'object') {
+        // Prefer message, then details, then hint, then stringify
+        msg = error.message || error.details || error.hint || JSON.stringify(error);
+    }
 
     // Ignore benign errors (like empty result sets on some queries)
-    if (error.code === 'PGRST200') return; 
+    if (error?.code === 'PGRST200') return; 
 
     if (msg.includes('Failed to fetch') || msg.includes('Network request failed') || msg.includes('connection error')) {
         console.warn(`[Offline/Network] Could not fetch ${context}. Using local/empty data.`);
         return;
     }
 
-    const isMissingTable = error.code === '42P01' || 
+    const isMissingTable = error?.code === '42P01' || 
                            msg.includes('Could not find the table') ||
                            msg.includes('schema cache');
 
@@ -23,7 +30,7 @@ export const logError = (context: string, error: any) => {
         return;
     }
 
-    console.error(`DB Error (${context}):`, msg || error);
+    console.error(`DB Error (${context}):`, msg);
 };
 
 export const mapPolygonFromDB = (p: any): PolygonPoint => {

@@ -7,7 +7,7 @@ import { StructureElement, Language, LocalizedString } from '../../types';
 import { apiService } from '../../services/api';
 
 export const AdminStructureInventory: React.FC = () => {
-    const { struct } = useData();
+    const { struct, data } = useData();
     const { showToast, language, t } = useUI();
     const { currentUser } = useAuth();
 
@@ -16,13 +16,15 @@ export const AdminStructureInventory: React.FC = () => {
     
     // Inventory States
     const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
-    const [newStruct, setNewStruct] = useState({ name: '', code: '', kmStart: '', kmEnd: '', isSplit: false });
+    const [editingStructId, setEditingStructId] = useState<string | null>(null);
+    const [newStruct, setNewStruct] = useState({ name: '', code: '', kmStart: '', kmEnd: '', isSplit: false, path: '' });
     const [selectedStructId, setSelectedStructId] = useState<string | null>(null);
     const [selectedLayerId, setSelectedLayerId] = useState('');
     const [isUploadingSurface, setIsUploadingSurface] = useState(false);
 
     // --- Element Management States ---
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+    const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
     const [isBulkMode, setIsBulkMode] = useState(false); 
     const [bulkText, setBulkText] = useState('');
     
@@ -55,26 +57,107 @@ export const AdminStructureInventory: React.FC = () => {
         struct.loadLayers();
     }, []);
 
+    // AUTO-GENERATE PATH EFFECT (Only for new structs)
+    useEffect(() => {
+        if (!selectedTypeFilter || !newStruct.code || editingStructId) return;
+        
+        const typeObj = struct.types.find(t => t.id === selectedTypeFilter);
+        if (!typeObj) return;
+
+        let rootPath = "";
+        // Basic logic: if type code is POD use defaultBridgePath, if DG use defaultCulvertPath
+        if (typeObj.code === 'POD') rootPath = data.settings.defaultBridgePath;
+        else if (typeObj.code === 'DG') rootPath = data.settings.defaultCulvertPath;
+        else return; // Don't auto-gen for unknown types
+
+        // Sanitize name for folder safety
+        const safeName = newStruct.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const generatedPath = `${rootPath}/${newStruct.code}_${safeName}`;
+        
+        // Only update if path is empty or looks like an auto-generated path (basic check)
+        if (!newStruct.path || newStruct.path.startsWith(rootPath)) {
+            setNewStruct(prev => ({ ...prev, path: generatedPath }));
+        }
+    }, [newStruct.code, newStruct.name, selectedTypeFilter, data.settings, editingStructId]);
+
     // --- HANDLERS ---
 
-    const handleAddStruct = async (e: React.FormEvent) => { 
-        e.preventDefault();
+    const handleSaveStruct = async (e: React.SyntheticEvent) => { 
+        if(e && e.preventDefault) e.preventDefault();
         if (!selectedTypeFilter) { showToast('Lütfen önce tür seçiniz.', 'error'); return; }
-        await struct.addStructure({ 
-            typeId: selectedTypeFilter, code: newStruct.code, name: newStruct.name, 
-            kmStart: parseFloat(newStruct.kmStart)||0, kmEnd: parseFloat(newStruct.kmEnd)||0, isSplit: newStruct.isSplit 
-        });
-        setNewStruct({ name: '', code: '', kmStart: '', kmEnd: '', isSplit: false });
+        
+        const structData = {
+            typeId: selectedTypeFilter, 
+            code: newStruct.code, 
+            name: newStruct.name, 
+            kmStart: parseFloat(newStruct.kmStart)||0, 
+            kmEnd: parseFloat(newStruct.kmEnd)||0, 
+            isSplit: newStruct.isSplit,
+            path: newStruct.path 
+        };
+
+        if (editingStructId) {
+            await struct.updateStructure(editingStructId, structData);
+            setEditingStructId(null);
+        } else {
+            await struct.addStructure(structData);
+        }
+        
+        setNewStruct({ name: '', code: '', kmStart: '', kmEnd: '', isSplit: false, path: '' });
     };
 
-    const handleAddGroup = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if(!selectedStructId || !newGroup.name) return;
-        await struct.addGroup({
-            structureId: selectedStructId, name: newGroup.name, groupType: newGroup.type, 
-            direction: newGroup.direction, orderIndex: newGroup.order
+    const handleEditStruct = (s: any) => {
+        setEditingStructId(s.id);
+        setSelectedTypeFilter(s.typeId); // Ensure type is selected to show form
+        setNewStruct({
+            name: s.name,
+            code: s.code,
+            kmStart: s.kmStart?.toString() || '',
+            kmEnd: s.kmEnd?.toString() || '',
+            isSplit: s.isSplit,
+            path: s.path || ''
         });
-        setNewGroup({...newGroup, name: '', order: newGroup.order + 1});
+    };
+
+    const handleCancelStructEdit = () => {
+        setEditingStructId(null);
+        setNewStruct({ name: '', code: '', kmStart: '', kmEnd: '', isSplit: false, path: '' });
+    };
+
+    const handleSaveGroup = async (e: React.SyntheticEvent) => {
+        if(e && e.preventDefault) e.preventDefault();
+        if(!selectedStructId || !newGroup.name) return;
+        
+        const groupData = {
+            structureId: selectedStructId, 
+            name: newGroup.name, 
+            groupType: newGroup.type, 
+            direction: newGroup.direction, 
+            orderIndex: newGroup.order
+        };
+
+        if (editingGroupId) {
+            await struct.updateGroup(editingGroupId, groupData);
+            setEditingGroupId(null);
+        } else {
+            await struct.addGroup(groupData);
+        }
+        setNewGroup({ name: '', type: 'PIER', direction: 'C', order: 1 }); // Reset to default
+    };
+
+    const handleEditGroup = (g: any) => {
+        setEditingGroupId(g.id);
+        setNewGroup({
+            name: g.name,
+            type: g.groupType,
+            direction: g.direction,
+            order: g.orderIndex
+        });
+    };
+
+    const handleCancelGroupEdit = () => {
+        setEditingGroupId(null);
+        setNewGroup({ name: '', type: 'PIER', direction: 'C', order: 1 });
     };
 
     const parsePolygonText = (text: string) => {
@@ -91,8 +174,8 @@ export const AdminStructureInventory: React.FC = () => {
         return points;
     };
 
-    const handleSaveElement = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSaveElement = async (e: React.SyntheticEvent) => {
+        if(e && e.preventDefault) e.preventDefault();
         if(!selectedGroupId || !newElement.name) return;
         
         let polygonPoints = undefined;
@@ -177,15 +260,15 @@ export const AdminStructureInventory: React.FC = () => {
         setIsBulkMode(false);
     };
 
-    const handleAddLayer = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAddLayer = async (e: React.SyntheticEvent) => {
+        if(e && e.preventDefault) e.preventDefault();
         if(!newLayer.name.tr) return;
         await struct.addLayer({ name: newLayer.name, orderIndex: newLayer.orderIndex });
         setNewLayer({ name: { tr: '', en: '', ro: '' }, orderIndex: struct.layers.length + 1 });
     };
 
-    const handleAddType = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAddType = async (e: React.SyntheticEvent) => {
+        if(e && e.preventDefault) e.preventDefault();
         if(!newType.name.tr || !newType.code) { showToast('Kod ve İsim zorunludur.', 'error'); return; }
         await struct.addStructureType(newType);
         setNewType({ code: '', name: { tr: '', en: '', ro: '' }, icon: 'category' });
@@ -239,12 +322,15 @@ export const AdminStructureInventory: React.FC = () => {
                 <div className="flex flex-col lg:flex-row gap-6 h-[800px]">
                     {/* LEFT PANEL: STRUCTURE LIST */}
                     <div className="w-full lg:w-1/3 bg-iha-800 rounded-2xl border border-iha-700 flex flex-col overflow-hidden shadow-xl">
-                        <div className="p-4 border-b border-iha-700 bg-iha-900/50">
+                        <div className={`p-4 border-b border-iha-700 transition-colors ${editingStructId ? 'bg-blue-900/30' : 'bg-iha-900/50'}`}>
+                            <h4 className={`text-sm font-bold mb-3 ${editingStructId ? 'text-blue-400' : 'text-slate-400'}`}>
+                                {editingStructId ? 'Yapıyı Düzenle' : 'Yeni Yapı Ekle'}
+                            </h4>
                             <select value={selectedTypeFilter} onChange={e => setSelectedTypeFilter(e.target.value)} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-2.5 text-white text-sm mb-3">
                                 <option value="">-- Kategori Seç --</option>
                                 {struct.types.map(t => <option key={t.id} value={t.id}>{t.name[language]}</option>)}
                             </select>
-                            <form onSubmit={handleAddStruct} className="grid grid-cols-2 gap-2 p-3 bg-iha-900 rounded-xl border border-iha-700">
+                            <form onSubmit={handleSaveStruct} className="grid grid-cols-2 gap-2 p-3 bg-iha-900 rounded-xl border border-iha-700">
                                 {isAddingSurfaceType ? (
                                     <>
                                         <input placeholder="Adı / Sektörü" value={newStruct.name} onChange={e => setNewStruct({...newStruct, name: e.target.value})} className="bg-iha-800 border border-iha-700 rounded p-2 text-white text-xs col-span-2" />
@@ -258,18 +344,35 @@ export const AdminStructureInventory: React.FC = () => {
                                         <input placeholder="Start KM" value={newStruct.kmStart} onChange={e => setNewStruct({...newStruct, kmStart: e.target.value})} className="bg-iha-800 border border-iha-700 rounded p-2 text-white text-xs" />
                                         <input placeholder="End KM" value={newStruct.kmEnd} onChange={e => setNewStruct({...newStruct, kmEnd: e.target.value})} className="bg-iha-800 border border-iha-700 rounded p-2 text-white text-xs" />
                                         
+                                        <div className="col-span-2">
+                                            <label className="text-[10px] text-slate-500 block mb-1">PVLA Dosya Yolu (Otomatik)</label>
+                                            <input 
+                                                value={newStruct.path} 
+                                                onChange={e => setNewStruct({...newStruct, path: e.target.value})} 
+                                                className="w-full bg-iha-800 border border-iha-700 rounded p-2 text-yellow-500 font-mono text-[10px]" 
+                                                placeholder="/PVLA/Bridge/Scan/..." 
+                                            />
+                                        </div>
+
                                         <div className="col-span-2 flex items-center gap-2 mt-1 bg-iha-800 p-2 rounded border border-iha-700">
                                             <input type="checkbox" id="isSplitCheck" checked={newStruct.isSplit} onChange={e => setNewStruct({...newStruct, isSplit: e.target.checked})} className="w-4 h-4 rounded border-iha-600 bg-iha-900 text-blue-600 focus:ring-blue-500" />
                                             <label htmlFor="isSplitCheck" className="text-xs text-slate-300 cursor-pointer select-none">Ayrık Yapı (Sağ/Sol) - <span className="text-[10px] text-slate-500">Split Structure</span></label>
                                         </div>
                                     </>
                                 )}
-                                <button className="col-span-2 bg-blue-600 text-white text-xs font-bold py-2 rounded hover:bg-blue-500 mt-1">EKLE</button>
+                                <div className="col-span-2 flex gap-2 mt-1">
+                                    <button className="flex-1 bg-blue-600 text-white text-xs font-bold py-2 rounded hover:bg-blue-500">
+                                        {editingStructId ? 'GÜNCELLE' : 'EKLE'}
+                                    </button>
+                                    {editingStructId && (
+                                        <button type="button" onClick={handleCancelStructEdit} className="flex-1 bg-slate-700 text-white text-xs font-bold py-2 rounded hover:bg-slate-600">İPTAL</button>
+                                    )}
+                                </div>
                             </form>
                         </div>
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
                             {struct.structures.filter(s => !selectedTypeFilter || s.typeId === selectedTypeFilter).map(s => (
-                                <div key={s.id} onClick={() => { setSelectedStructId(s.id); setSelectedGroupId(null); }} className={`p-3 rounded-lg cursor-pointer border transition-all ${selectedStructId === s.id ? 'bg-blue-600/20 border-blue-500/50' : 'bg-iha-900 border-transparent hover:bg-white/5'}`}>
+                                <div key={s.id} onClick={() => { setSelectedStructId(s.id); setSelectedGroupId(null); }} className={`p-3 rounded-lg cursor-pointer border transition-all group relative ${selectedStructId === s.id ? 'bg-blue-600/20 border-blue-500/50' : 'bg-iha-900 border-transparent hover:bg-white/5'}`}>
                                     <div className="flex justify-between items-center">
                                         <span className="font-bold text-white text-sm">{s.code || s.name}</span>
                                         <span className="text-[10px] text-slate-400 font-mono">{s.kmStart} - {s.kmEnd}</span>
@@ -277,6 +380,16 @@ export const AdminStructureInventory: React.FC = () => {
                                     <div className="flex justify-between items-end mt-1">
                                         <p className="text-xs text-slate-300">{s.name}</p>
                                         {s.isSplit && <span className="text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/30">SPLIT</span>}
+                                    </div>
+                                    
+                                    {/* Edit/Delete Actions */}
+                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={(e) => { e.stopPropagation(); handleEditStruct(s); }} className="p-1 text-blue-400 hover:bg-blue-500/20 rounded">
+                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); struct.deleteStructure(s.id); }} className="p-1 text-red-400 hover:bg-red-500/20 rounded">
+                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -332,8 +445,11 @@ export const AdminStructureInventory: React.FC = () => {
                                 <div className="flex h-full divide-x divide-iha-700">
                                     {/* 1. GROUPS COLUMN (Piers/Abutments) */}
                                     <div className="w-1/3 flex flex-col bg-iha-900/30">
-                                        <div className="p-4 border-b border-iha-700">
-                                            <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2"><span className="material-symbols-outlined text-purple-500">account_tree</span> Yapı Grupları (Akslar)</h4>
+                                        <div className={`p-4 border-b border-iha-700 transition-colors ${editingGroupId ? 'bg-purple-900/30' : ''}`}>
+                                            <h4 className={`font-bold text-sm mb-2 flex items-center gap-2 ${editingGroupId ? 'text-purple-400' : 'text-white'}`}>
+                                                <span className="material-symbols-outlined text-purple-500">account_tree</span> 
+                                                {editingGroupId ? 'Grubu Düzenle' : 'Yapı Grupları (Akslar)'}
+                                            </h4>
                                             <div className="grid grid-cols-2 gap-1 mb-1">
                                                 <input placeholder="Adı (Örn: P1)" value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})} className="bg-iha-800 border border-iha-600 rounded p-1.5 text-white text-xs" />
                                                 <input type="number" placeholder="Sıra" value={newGroup.order} onChange={e => setNewGroup({...newGroup, order: parseInt(e.target.value)})} className="bg-iha-800 border border-iha-600 rounded p-1.5 text-white text-xs" />
@@ -342,7 +458,14 @@ export const AdminStructureInventory: React.FC = () => {
                                                 <select value={newGroup.type} onChange={e => setNewGroup({...newGroup, type: e.target.value as any})} className="flex-1 bg-iha-800 border border-iha-600 rounded p-1.5 text-white text-xs"><option value="PIER">Orta Ayak</option><option value="ABUTMENT">Kenar Ayak</option><option value="SPAN">Açıklık</option></select>
                                                 <select value={newGroup.direction} onChange={e => setNewGroup({...newGroup, direction: e.target.value as any})} className="w-16 bg-iha-800 border border-iha-600 rounded p-1.5 text-white text-xs"><option value="C">Orta</option><option value="L">Sol</option><option value="R">Sağ</option></select>
                                             </div>
-                                            <button onClick={handleAddGroup} className="w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-2 rounded">GRUP EKLE</button>
+                                            <div className="flex gap-1">
+                                                <button onClick={handleSaveGroup} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-2 rounded">
+                                                    {editingGroupId ? 'GÜNCELLE' : 'GRUP EKLE'}
+                                                </button>
+                                                {editingGroupId && (
+                                                    <button onClick={handleCancelGroupEdit} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2 rounded">İPTAL</button>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
                                             {activeStruct.groups?.map(g => (
@@ -351,7 +474,14 @@ export const AdminStructureInventory: React.FC = () => {
                                                         <div className="flex items-center gap-2"><span className="font-bold text-xs">{g.name}</span><span className={`text-[9px] px-1.5 rounded ${g.direction === 'L' ? 'bg-blue-500/20 text-blue-400' : g.direction === 'R' ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-700 text-slate-300'}`}>{g.direction}</span></div>
                                                         <p className="text-[9px] opacity-70 mt-0.5">{g.groupType} • {g.elements?.length || 0} Eleman</p>
                                                     </div>
-                                                    <button onClick={(e) => { e.stopPropagation(); struct.deleteGroup(g.id); }} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-white"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleEditGroup(g); }} className="text-blue-400 hover:text-white p-1 hover:bg-blue-500/20 rounded">
+                                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); struct.deleteGroup(g.id); }} className="text-red-400 hover:text-white p-1 hover:bg-red-500/20 rounded">
+                                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

@@ -19,7 +19,30 @@ export const mapRepository = {
 
   // --- MAP NOTES & PHOTOS ---
   async fetchMapData(): Promise<{ notes: MapNote[], photos: SitePhoto[] }> { if (!supabase) return { notes: [], photos: [] }; try { const { data: noteData, error: noteError } = await supabase.from('map_notes').select('*'); if(noteError) logError("map_notes", noteError); const { data: photoData, error: photoError } = await supabase.from('site_photos').select('*'); if(photoError) logError("site_photos", photoError); const notes = (noteData || []).map((n: any) => ({ id: n.id, lat: n.lat, lng: n.lng, text: n.text, author: n.author || '', date: n.date, privacy: n.privacy })); const photos = (photoData || []).map((p: any) => ({ id: p.id, lat: p.lat, lng: p.lng, url: p.url, description: { tr: p.description_tr || '', en: p.description_en || '', ro: p.description_ro || '' }, date: p.date, uploadedBy: p.uploaded_by })); return { notes, photos }; } catch(e) { logError('map_data_ex', e); return { notes: [], photos: [] }; } },
-  async addMapNote(note: Omit<MapNote, 'id'>, userId: string): Promise<MapNote | null> { if (!supabase) return null; const { data, error } = await supabase.from('map_notes').insert({ lat: note.lat, lng: note.lng, text: note.text, author: userId, date: note.date, privacy: note.privacy || 'public' }).select().single(); if(error) { logError("map_notes", error); return null; } return { id: data.id, lat: data.lat, lng: data.lng, text: data.text, author: data.author || '', date: data.date, privacy: data.privacy }; },
+  
+  // UPDATED: Now returns error info for debugging
+  async addMapNote(note: Omit<MapNote, 'id'>, userId: string): Promise<{ data: MapNote | null; error: string | null }> { 
+      if (!supabase) return { data: null, error: 'Database connection failed' }; 
+      const { data, error } = await supabase.from('map_notes').insert({ 
+          lat: note.lat, 
+          lng: note.lng, 
+          text: note.text, 
+          author: userId, 
+          date: note.date, 
+          privacy: note.privacy || 'public' 
+      }).select().single();
+      
+      if(error) { 
+          logError("map_notes", error); 
+          return { data: null, error: error.message };
+      } 
+      
+      return { 
+          data: { id: data.id, lat: data.lat, lng: data.lng, text: data.text, author: data.author || '', date: data.date, privacy: data.privacy },
+          error: null
+      }; 
+  },
+  
   async deleteMapNote(id: string): Promise<boolean> { if (!supabase) return false; const { error } = await supabase.from('map_notes').delete().eq('id', id); if (error) logError('deleteMapNote', error); return !error; },
   async addSitePhoto(photo: Omit<SitePhoto, 'id'>, userId: string): Promise<SitePhoto | null> { if (!supabase) return null; const { data, error } = await supabase.from('site_photos').insert({ lat: photo.lat, lng: photo.lng, url: photo.url, description_tr: photo.description.tr, description_en: photo.description.en, description_ro: photo.description.ro, date: photo.date, uploaded_by: userId }).select().single(); if (error) { logError('addSitePhoto', error); return null; } return { id: data.id, lat: data.lat, lng: data.lng, url: data.url, description: { tr: data.description_tr, en: data.description_en, ro: data.description_ro }, date: data.date, uploadedBy: data.uploaded_by }; },
   async deleteSitePhoto(id: string): Promise<boolean> { if (!supabase) return false; const { error } = await supabase.from('site_photos').delete().eq('id', id); if (error) logError('deleteSitePhoto', error); return !error; },

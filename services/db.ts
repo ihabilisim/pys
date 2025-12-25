@@ -1,6 +1,7 @@
 
 import { supabase } from './supabase';
-import { AppData } from '../types';
+// @FIX: Import PVLAStructure to use its type.
+import { AppData, PVLAStructure } from '../types';
 import { userService } from './userService';
 import { structureService } from './structureService';
 import { logError } from './dbUtils';
@@ -26,14 +27,15 @@ export const dbService = {
     if (!supabase) return initialData;
     try {
         const [
-            users, changelogs, drones, pvlaStructs, pvlaFiles, matrix, issues, machinery, notifs, 
+            users, changelogs, drones, pvlaFiles, matrix, issues, machinery, notifs, 
             menuStruct, structTypes, mapData, matrixColumns, pvlaIndices, utilityCats, mapLayers, designLayers,
-            stocks, boq, shortcuts, slides, timeline, infra
+            stocks, boq, shortcuts, slides, timeline, infra,
+            // @FIX: Fetch pvlaStructures data.
+            pvlaStructures
         ] = await Promise.all([
             userService.fetchUsers(), 
             siteRepository.fetchChangelogs(), 
             siteRepository.fetchDroneFlights(), 
-            pvlaRepository.fetchPvlaStructures(), 
             pvlaRepository.fetchPVLAFiles(), 
             pvlaRepository.fetchMatrix(), 
             siteRepository.fetchSiteIssues(), 
@@ -52,7 +54,9 @@ export const dbService = {
             projectRepository.fetchShortcuts(), 
             projectRepository.fetchSlides(), 
             projectRepository.fetchTimeline(), 
-            projectRepository.fetchInfraProjects()
+            projectRepository.fetchInfraProjects(),
+            // @FIX: Call the fetch function for pvla_structures.
+            pvlaRepository.fetchPvlaStructures()
         ]);
         const { data: configData } = await supabase.from('app_config').select('*');
         const newData: AppData = { 
@@ -60,7 +64,6 @@ export const dbService = {
             users: users.length > 0 ? users : initialData.users, 
             changelog: changelogs, 
             droneFlights: drones, 
-            pvlaStructures: pvlaStructs, 
             pvlaFiles: pvlaFiles, 
             progressMatrix: matrix, 
             siteIssues: issues, 
@@ -70,6 +73,8 @@ export const dbService = {
             sitePhotos: mapData.photos,
             matrixColumns: matrixColumns, 
             pvlaIndices: pvlaIndices,
+            // @FIX: Populate pvlaStructures in the application data.
+            pvlaStructures: pvlaStructures,
             utilityCategories: utilityCats,
             externalLayers: mapLayers,
             designLayers: designLayers,
@@ -111,6 +116,6 @@ export const dbService = {
           const { error } = await supabase.from('app_config').upsert(upserts, { onConflict: 'key' });
           if (error) logError('saveData', error);
           return !error;
-      } catch (e) { logError('saveData_ex', e); return false; }
+      } catch (e) { logError('saveData_ex', e); return false; } 
   }, 
 };

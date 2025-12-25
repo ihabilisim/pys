@@ -1,21 +1,18 @@
 
 import React, { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
-/* Import useUI to access language, activeTab, and translation function */
 import { useUI } from '../context/UIContext';
-/* Import useAuth for dynamic user checking */
 import { useAuth } from '../context/AuthContext';
 import { MenuItemConfig } from '../types';
 
 interface SidebarProps {
-  // Make props optional to allow Context fallback
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
   isAdmin?: boolean;
   onLogout?: () => void;
   isOpen?: boolean; 
-  onLogin?: () => void; // New prop for login redirection
-  onProfileClick?: () => void; // New prop for profile modal
+  onLogin?: () => void; 
+  onProfileClick?: () => void; 
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -28,15 +25,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onProfileClick
 }) => {
   const { data } = useData();
-  const { currentUser } = useAuth(); // Use dynamic user
-  /* Use UI context for localized values and active tab management */
+  const { currentUser } = useAuth(); 
   const { language, activeTab: contextActiveTab, setActiveTab: contextSetActiveTab, t, toggleChat, isChatOpen } = useUI();
 
-  // Determine which state to use: Props (Admin) or Context (SiteView)
   const currentTab = propActiveTab || contextActiveTab;
   const setTab = propSetActiveTab || contextSetActiveTab;
 
-  // Local state for expanded menus
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
   const toggleSubmenu = (id: string) => {
@@ -47,19 +41,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', order: 0, visible: true, icon: 'campaign', label: { tr: t('sidebar.dashboard'), en: 'Dashboard', ro: 'Panou' } },
     { id: 'shortcuts', order: 1, visible: true, icon: 'bookmark', label: { tr: t('sidebar.shortcuts'), en: 'Shortcuts', ro: 'Scurtături' } },
     { id: 'layout', order: 2, visible: true, icon: 'map', label: { tr: t('sidebar.layout'), en: 'Layout', ro: 'Plan' } },
-    { id: 'master-design', order: 2.5, visible: true, icon: 'design_services', label: { tr: 'Master Design', en: 'Master Design', ro: 'Master Design' } }, // NEW ITEM
+    { id: 'master-design', order: 2.5, visible: true, icon: 'design_services', label: { tr: 'Master Design', en: 'Master Design', ro: 'Master Design' } }, 
     { id: 'topo', order: 3, visible: true, icon: 'landscape', label: { tr: t('sidebar.topo'), en: 'Topo', ro: 'Topo' } },
     { id: 'structure-inventory', order: 3.5, visible: true, icon: 'view_in_ar', label: { tr: 'Yapı Envanteri', en: 'Struct. Inventory', ro: 'Inventar Structuri' } },
     { id: 'materials', order: 4, visible: true, icon: 'inventory_2', label: { tr: t('sidebar.materials'), en: 'Materials', ro: 'Materiale' } },
     { id: 'infra', order: 5, visible: true, icon: 'foundation', label: { tr: t('sidebar.infra'), en: 'Infra', ro: 'Infra' } },
     { id: 'pvla', order: 6, visible: true, icon: 'folder_shared', label: { tr: t('sidebar.pvla'), en: 'PVLA', ro: 'PVLA' } },
     { id: 'drone', order: 7, visible: true, icon: 'flight', label: { tr: t('sidebar.drone'), en: 'Drone', ro: 'Dronă' } }, 
-    { id: 'settings', order: 8, visible: true, icon: 'settings', label: { tr: t('sidebar.settings'), en: 'Settings', ro: 'Setări' } },
+    { id: 'feedback', order: 7.5, visible: true, icon: 'reviews', label: { tr: 'Geri Bildirimler', en: 'Feedbacks', ro: 'Feedback' } }, // NEW ITEM
     { id: 'users', order: 9, visible: true, icon: 'group', label: { tr: t('sidebar.users'), en: 'Users', ro: 'Utilizatori' } },
+    { id: 'settings', order: 8, visible: true, icon: 'settings', label: { tr: t('sidebar.settings'), en: 'Settings', ro: 'Setări' } },
     { id: 'changelog', order: 10, visible: true, icon: 'history_edu', label: { tr: 'Değişiklik Günlüğü', en: 'Changelog', ro: 'Jurnal Modificări' } },
   ];
 
-  // Dynamic Site Menu
   const siteItems = useMemo(() => {
         return data.menuStructure
             .filter(item => item.visible)
@@ -68,29 +62,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const menuItems = isAdmin ? adminItems : siteItems;
 
-  // Helper to map role to display title if no job title is set
   const getRoleTitle = () => {
-      if (currentUser?.jobTitle) return currentUser.jobTitle; // Prioritize Job Title
+      if (currentUser?.jobTitle) return currentUser.jobTitle; 
       const role = currentUser?.role || 'viewer';
       return t(`roles.${role}`);
   };
 
-  // Derive user display logic if user is logged in
   const userInitials = currentUser 
-      ? currentUser.fullName
-          .split(' ')
-          .map(n => n[0])
-          .join('')
-          .substring(0, 2)
-          .toUpperCase()
+      ? currentUser.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
       : '';
 
-  // Recursive Menu Renderer
   const renderMenuItem = (item: MenuItemConfig, depth = 0) => {
       const hasChildren = item.children && item.children.length > 0;
       const isExpanded = expandedMenus[item.id];
       const isActive = currentTab === item.id;
-      const paddingLeft = 16 + (depth * 12); // Indentation
+      const paddingLeft = 16 + (depth * 12); 
 
       return (
           <div key={item.id} className="w-full">
@@ -115,8 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
                 )}
               </button>
-              
-              {/* Submenu Children */}
               {hasChildren && isExpanded && (
                   <div className="mt-1 space-y-1 animate-in slide-in-from-top-2 duration-200">
                       {item.children!.map(child => renderMenuItem(child, depth + 1))}
@@ -141,11 +125,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="material-symbols-outlined text-white text-3xl">engineering</span>
             </div>
         )}
-        
-        {/* Localized Title */}
         <h1 className="text-xl font-bold text-white tracking-tight">{data.settings.sidebarTitle[language]}</h1>
         <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">{data.settings.sidebarSubtitle[language]}</p>
-        
         {isAdmin && <span className="mt-2 bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded border border-red-500/30">{t('sidebar.adminMode')}</span>}
       </div>
 
@@ -153,7 +134,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {menuItems.map(item => renderMenuItem(item))}
       </nav>
 
-      {/* AI Assistant Trigger Button - Placed just above the footer area */}
       <div className="px-4 pb-4">
           <button 
             onClick={toggleChat}
@@ -172,7 +152,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <p className="text-sm font-bold">IHA AI</p>
                     <p className="text-[10px] opacity-70">Proje Asistanı</p>
                 </div>
-                {isChatOpen && <span className="material-symbols-outlined text-sm animate-pulse">mic</span>}
             </div>
           </button>
       </div>
@@ -189,7 +168,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
-      {/* Dynamic User Profile or Login Button for Non-Admins */}
       {!isAdmin && (
         <div className="p-6 border-t border-iha-700">
             {currentUser ? (

@@ -30,8 +30,8 @@ export const SliderSettings: React.FC<Props> = ({ slides, addSlide, updateSlide,
         tag: ''
     });
 
-    const handleSaveSlide = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSaveSlide = async (e: React.SyntheticEvent) => {
+        if(e && e.preventDefault) e.preventDefault();
         let finalImageUrl = newSlide.image;
         if (slideFile) {
             setIsUploadingSlide(true);

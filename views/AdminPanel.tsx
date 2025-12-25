@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { useData } from '../context/DataContext';
-/* Import useAuth to access user and permission related functionality */
 import { useAuth } from '../context/AuthContext';
 import { ProfileModal } from './panel/modals/ProfileModal';
 
@@ -19,7 +18,8 @@ import { AdminUsers } from './panel/AdminUsers';
 import { AdminDrone } from './panel/AdminDrone'; 
 import { AdminChangelog } from './panel/AdminChangelog';
 import { AdminStructureInventory } from './panel/AdminStructureInventory';
-import { AdminMasterDesign } from './panel/AdminMasterDesign'; // New Import
+import { AdminMasterDesign } from './panel/AdminMasterDesign';
+import { AdminFeedback } from './panel/AdminFeedback'; // NEW
 
 interface AdminPanelProps {
   onLogout: () => void;
@@ -31,7 +31,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, onPreview }) =
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   
-  /* Use Auth context for user management and permission checks */
   const { currentUser, logout, hasPermission } = useAuth();
 
   const handleLogout = () => {
@@ -47,13 +46,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, onPreview }) =
       case 'layout': return <AdminLayout />;
       case 'topo': return <AdminTopo />;
       case 'structure-inventory': return <AdminStructureInventory />;
-      case 'master-design': return <AdminMasterDesign />; // New Case
+      case 'master-design': return <AdminMasterDesign />; 
       case 'infra': return <AdminInfra />;
       case 'pvla': return <AdminPvla />;
       case 'settings': return <AdminSettings />;
       case 'users': return <AdminUsers />;
       case 'drone': return <AdminDrone />;
       case 'changelog': return <AdminChangelog />;
+      case 'feedback': return <AdminFeedback />; // NEW
       default: return null;
     }
   };
@@ -86,7 +86,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, onPreview }) =
                         {currentUser?.role}
                     </div>
                     
-                    {/* User Management Shortcut */}
                     {hasPermission('manage_users') && (
                         <button onClick={() => setActiveTab('users')} className={`text-sm flex items-center gap-1 ${activeTab === 'users' ? 'text-iha-blue font-bold' : 'text-slate-400 hover:text-white'}`}>
                             <span className="material-symbols-outlined text-lg">group</span> 

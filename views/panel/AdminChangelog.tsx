@@ -19,13 +19,13 @@ export const AdminChangelog: React.FC = () => {
         date: string;
         type: 'major' | 'minor' | 'patch';
         title: LocalizedString;
-        changesText: string; // Easier to edit as text area
+        changesText: { tr: string; en: string; ro: string }; // Now multilingual
     }>({
         version: '',
         date: new Date().toISOString().split('T')[0],
         type: 'minor',
         title: { tr: '', en: '', ro: '' },
-        changesText: ''
+        changesText: { tr: '', en: '', ro: '' }
     });
 
     const handleSave = (e: React.FormEvent) => {
@@ -35,14 +35,23 @@ export const AdminChangelog: React.FC = () => {
             return;
         }
 
-        const changesList = entry.changesText.split('\n').filter(line => line.trim() !== '');
+        // Convert text areas to arrays
+        const changesArrays = {
+            tr: entry.changesText.tr.split('\n').filter(line => line.trim() !== ''),
+            en: entry.changesText.en.split('\n').filter(line => line.trim() !== ''),
+            ro: entry.changesText.ro.split('\n').filter(line => line.trim() !== '')
+        };
+
+        // If English or Romanian changes are empty, fallback to Turkish
+        if (changesArrays.en.length === 0) changesArrays.en = [...changesArrays.tr];
+        if (changesArrays.ro.length === 0) changesArrays.ro = [...changesArrays.tr];
 
         const payload = {
             version: entry.version,
             date: entry.date,
             type: entry.type,
             title: entry.title,
-            changes: changesList
+            changes: changesArrays
         };
 
         if(editId) {
@@ -60,7 +69,7 @@ export const AdminChangelog: React.FC = () => {
             date: new Date().toISOString().split('T')[0],
             type: 'minor',
             title: { tr: '', en: '', ro: '' },
-            changesText: ''
+            changesText: { tr: '', en: '', ro: '' }
         });
     };
 
@@ -71,7 +80,11 @@ export const AdminChangelog: React.FC = () => {
             date: log.date,
             type: log.type,
             title: log.title,
-            changesText: log.changes.join('\n')
+            changesText: {
+                tr: log.changes.tr.join('\n'),
+                en: log.changes.en.join('\n'),
+                ro: log.changes.ro.join('\n')
+            }
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -83,7 +96,7 @@ export const AdminChangelog: React.FC = () => {
             date: new Date().toISOString().split('T')[0],
             type: 'minor',
             title: { tr: '', en: '', ro: '' },
-            changesText: ''
+            changesText: { tr: '', en: '', ro: '' }
         });
     };
 
@@ -140,12 +153,12 @@ export const AdminChangelog: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="text-xs text-slate-500 block mb-1 font-bold">Değişiklikler (Her satır bir madde)</label>
+                        <label className="text-xs text-slate-500 block mb-1 font-bold">Değişiklikler ({formLang}) - Her satır bir madde</label>
                         <textarea 
-                            value={entry.changesText} 
-                            onChange={e => setEntry({...entry, changesText: e.target.value})} 
+                            value={entry.changesText[formLang]} 
+                            onChange={e => setEntry({...entry, changesText: { ...entry.changesText, [formLang]: e.target.value }})} 
                             className="w-full bg-iha-900 border border-iha-700 rounded-lg p-3 text-white font-mono text-sm h-32" 
-                            placeholder="- Yeni özellik eklendi&#10;- Hata giderildi..."
+                            placeholder={`- Yeni özellik eklendi\n- Hata giderildi...`}
                         />
                     </div>
 
@@ -178,7 +191,7 @@ export const AdminChangelog: React.FC = () => {
                         </div>
                         <div className="p-5">
                             <ul className="space-y-2">
-                                {log.changes.map((change, idx) => (
+                                {(log.changes[formLang] && log.changes[formLang].length > 0 ? log.changes[formLang] : log.changes['tr']).map((change, idx) => (
                                     <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
                                         <span className="material-symbols-outlined text-base text-purple-500 mt-0.5">check_small</span>
                                         <span className="leading-relaxed">{change}</span>

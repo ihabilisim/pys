@@ -23,6 +23,7 @@ export const INITIAL_DATA: AppData = {
       Bridge: { title: { tr: '', en: '', ro: '' }, description: { tr: '', en: '', ro: '' }, fileUrl: '#', lastUpdated: '-' },
       Culvert: { title: { tr: '', en: '', ro: '' }, description: { tr: '', en: '', ro: '' }, fileUrl: '#', lastUpdated: '-' }
   },
+  // @FIX: Add pvlaStructures back to the initial data object.
   pvlaStructures: [],
   pvlaFiles: [],
   
@@ -35,6 +36,7 @@ export const INITIAL_DATA: AppData = {
   sitePhotos: [],
   chainageMarkers: [],
   notifications: [],
+  userNotifications: [], // Initialized Empty
   infraProjects: [],
   shortcuts: [],
   topoItems: [],

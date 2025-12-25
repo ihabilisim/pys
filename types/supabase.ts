@@ -10,6 +10,29 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      feedback_submissions: {
+        Row: {
+          id: string
+          full_name: string
+          email: string | null
+          phone: string | null
+          subject: string
+          content: string
+          status: string
+          created_at?: string
+        }
+        Insert: {
+          id?: string
+          full_name: string
+          email?: string | null
+          phone?: string | null
+          subject: string
+          content: string
+          status?: string
+          created_at?: string
+        }
+        Update: { [key: string]: any }
+      }
       user_groups: {
         Row: {
           id: string
@@ -530,6 +553,7 @@ export interface Database {
           order_index: number
           cells: Json
           created_at?: string
+          structure_group_id: string
         }
         Insert: {
           id?: string
@@ -538,6 +562,7 @@ export interface Database {
           foundation_type?: string | null
           order_index?: number
           cells: Json
+          structure_group_id: string
         }
         Update: { [key: string]: any }
       }

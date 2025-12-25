@@ -1,9 +1,13 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { apiService } from '../services/api';
-import { StructureType, StructureMain, StructureTreeItem, StructureGroup, StructureElement, ElementCoordinates, StructureLayer, StructureSurface } from '../types';
+import { StructureType, StructureMain, StructureTreeItem, StructureGroup, StructureElement, ElementCoordinates, StructureLayer, StructureSurface, PVLAStructure, MatrixColumn, ProgressRow } from '../types';
 
-export const useStructureManager = (showToast: (msg: string, type?: 'success'|'error'|'info') => void) => {
+export const useStructureManager = (
+    showToast: (msg: string, type?: 'success'|'error'|'info') => void,
+    matrixColumns: { Bridge: MatrixColumn[], Culvert: MatrixColumn[] },
+    addMatrixRow: (row: ProgressRow) => Promise<void>
+) => {
     const [types, setTypes] = useState<StructureType[]>([]);
     const [structures, setStructures] = useState<StructureTreeItem[]>([]);
     const [layers, setLayers] = useState<StructureLayer[]>([]);
@@ -76,19 +80,94 @@ export const useStructureManager = (showToast: (msg: string, type?: 'success'|'e
         }
     };
 
-    const deleteStructure = async (id: string) => {
-        await apiService.deleteStructure(id);
-        showToast('Yapı silindi.', 'info');
-        await loadStructures();
+    const updateStructure = async (id: string, struct: Partial<StructureMain>) => {
+        const success = await apiService.updateStructure(id, struct);
+        if (success) {
+            showToast('Yapı güncellendi.');
+            await loadStructures();
+        } else {
+            showToast('Güncelleme hatası.', 'error');
+        }
     };
 
-    // --- GROUP METHODS ---
+    const deleteStructure = async (id: string) => {
+        if(window.confirm('Bu yapıyı ve altındaki tüm grupları silmek istediğinize emin misiniz?')) {
+            await apiService.deleteStructure(id);
+            showToast('Yapı silindi.', 'info');
+            await loadStructures();
+        }
+    };
+
+    // --- GROUP METHODS (WITH PVLA INTEGRATION) ---
     const addGroup = async (group: any) => {
         const id = await apiService.addGroup(group);
         if(id) {
-            showToast('Grup eklendi.');
+            try {
+                // Find the structure from the inventory's own state
+                const structure = structures.find(s => s.id === group.structureId);
+                
+                if (structure && structure.typeCode) {
+                    let matrixType: 'Bridge' | 'Culvert' | null = null;
+                    if (structure.typeCode === 'POD') matrixType = 'Bridge';
+                    else if (structure.typeCode === 'DG') matrixType = 'Culvert';
+
+                    if (matrixType) {
+                        const columns = matrixColumns[matrixType];
+                        if (columns && columns.length > 0) {
+                            const cells: { [key: string]: { code: string; status: 'EMPTY' } } = {};
+                            columns.forEach(col => {
+                                cells[col.id] = { code: '-', status: 'EMPTY' };
+                            });
+
+                            // FIX: Ensure PVLA structure record exists before adding matrix row to prevent FK violation
+                            const legacyCode = structure.code || structure.name;
+                            
+                            if (legacyCode) {
+                                const syncSuccess = await apiService.syncLegacyStructure(
+                                    legacyCode, 
+                                    structure.name, 
+                                    structure.kmStart, 
+                                    structure.kmEnd, 
+                                    matrixType
+                                );
+
+                                if (syncSuccess) {
+                                    const newRow: ProgressRow = {
+                                        id: crypto.randomUUID(),
+                                        structureId: legacyCode, // Changed to CODE to satisfy legacy FK
+                                        structureGroupId: id,
+                                        location: group.name,
+                                        foundationType: group.groupType,
+                                        orderIndex: group.orderIndex || 99,
+                                        cells
+                                    };
+                                    
+                                    await addMatrixRow(newRow);
+                                    showToast('Grup eklendi ve PVLA matrisine yansıtıldı.', 'success');
+                                } else {
+                                    showToast('Grup eklendi ancak PVLA senkronizasyonu başarısız oldu.', 'error');
+                                }
+                            } else {
+                                showToast('Grup eklendi. Uyarı: Yapı kodu eksik olduğu için PVLA matrisine eklenemedi.', 'info');
+                            }
+                        } else {
+                             showToast('Grup eklendi (PVLA matris sütunları tanımlanmamış).', 'info');
+                        }
+                    } else {
+                        showToast('Grup eklendi (Bu yapı tipi PVLA matrisine dahil değil).', 'info');
+                    }
+                } else {
+                     showToast('Grup eklendi (Yapı tipi PVLA ile uyumlu değil).', 'info');
+                }
+            } catch (e) {
+                console.error("Failed to auto-create matrix row:", e);
+                showToast('Grup eklendi ama matrise otomatik yansıtılamadı.', 'error');
+            }
+            
             await loadStructures();
-        } else { showToast('Hata.', 'error'); }
+        } else { 
+            showToast('Grup ekleme hatası.', 'error'); 
+        }
     };
 
     const updateGroup = async (id: string, group: Partial<StructureGroup>) => {
@@ -202,6 +281,7 @@ export const useStructureManager = (showToast: (msg: string, type?: 'success'|'e
         updateStructureType,
         deleteStructureType,
         addStructure,
+        updateStructure,
         deleteStructure,
         addGroup,
         updateGroup,

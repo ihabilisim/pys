@@ -28,16 +28,18 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
     flyToTarget 
 }) => {
     const { data, selectedPolyId, loadSiteIssues, loadMapData } = useData();
-    const { t } = useUI();
+    const { t, showToast } = useUI();
     
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
     const layersRef = useRef<Record<string, any>>({});
     const onMapClickRef = useRef(onMapClick);
+    const prevActiveToolRef = useRef(activeTool);
 
     const [showLayerPanel, setShowLayerPanel] = useState(false);
     const [isToolsExpanded, setIsToolsExpanded] = useState(false);
     const [baseMap, setBaseMap] = useState<'schematic' | 'satellite'>('schematic');
+    const [isLocating, setIsLocating] = useState(false);
     
     const [visibleLayers, setVisibleLayers] = useState({
         drone: false,
@@ -47,11 +49,11 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
         polygons: true,
         issues: true,
         utilities: false,
-        alignments: true, // NEW: Default to true for Yol Eksenleri
+        alignments: true, 
         notes: true
     });
 
-    const [mapStats, setMapStats] = useState({ zoom: 15, avgElevation: '405.37' });
+    const [mapStats, setMapStats] = useState({ zoom: 15, avgElevation: '---' });
 
     useEffect(() => {
         loadSiteIssues();
@@ -72,20 +74,73 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
         layersRef.current.chainage = L.featureGroup().addTo(map);
         layersRef.current.redLine = L.featureGroup().addTo(map); 
         layersRef.current.utilities = L.featureGroup().addTo(map);
-        layersRef.current.alignments = L.featureGroup().addTo(map); // New Layer Group
+        layersRef.current.alignments = L.featureGroup().addTo(map);
         layersRef.current.userLocation = L.featureGroup().addTo(map);
 
         map.on('click', (e: any) => onMapClickRef.current(e.latlng.lat, e.latlng.lng));
         map.on('moveend', updateStats);
         
-        updateStats();
+        // Initial update after a slight delay to ensure data might be ready
+        setTimeout(updateStats, 1000);
+
         return () => { map.remove(); mapRef.current = null; };
     }, []);
 
+    // Re-run stats update when polygon data changes
+    useEffect(() => {
+        if (data.polygonPoints.length > 0) {
+            updateStats();
+        }
+    }, [data.polygonPoints]);
+    
+    // --- FIX: Force map to re-evaluate its size when it becomes visible ---
+    useEffect(() => {
+        if (mapRef.current && isVisible) {
+            const timer = setTimeout(() => {
+                if (mapRef.current) {
+                    mapRef.current.invalidateSize(true);
+                }
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [isVisible]);
+    
+    // --- FIX: Force map to resize when Utilities panel is toggled ---
+    useEffect(() => {
+        if ((activeTool === 'utilities' || prevActiveToolRef.current === 'utilities') && mapRef.current) {
+             const timer = setTimeout(() => {
+                if (mapRef.current) {
+                    mapRef.current.invalidateSize({ animate: true });
+                }
+            }, 350); // Match CSS transition duration of sidebar
+            return () => clearTimeout(timer);
+        }
+        prevActiveToolRef.current = activeTool;
+    }, [activeTool]);
+
     const updateStats = () => {
         if (!mapRef.current) return;
-        const zoom = mapRef.current.getZoom();
-        setMapStats(prev => ({ ...prev, zoom }));
+        try {
+            const zoom = mapRef.current.getZoom();
+            const bounds = mapRef.current.getBounds();
+            
+            let totalElev = 0;
+            let count = 0;
+            data.polygonPoints.forEach(p => {
+                const lat = parseFloat(p.lat || '0');
+                const lng = parseFloat(p.lng || '0');
+                const elev = parseFloat(p.elevation || '0');
+                if (lat !== 0 && lng !== 0 && !isNaN(elev) && bounds.contains([lat, lng])) {
+                    totalElev += elev;
+                    count++;
+                }
+            });
+
+            const calculatedAvg = count > 0 ? (totalElev / count).toFixed(2) : null;
+            setMapStats(prev => ({ zoom, avgElevation: calculatedAvg || prev.avgElevation }));
+        } catch(e) {
+            // Can happen if map is not fully initialized, safe to ignore
+        }
     };
 
     // --- FLY TO TARGET EFFECT ---
@@ -161,6 +216,39 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
         }
     }, [measurePoints, activeTool]);
 
+    // Handle User Location
+    const handleLocateUser = () => {
+        if (!navigator.geolocation) {
+            showToast('Konum servisi desteklenmiyor.', 'error');
+            return;
+        }
+        
+        setIsLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                if(mapRef.current) {
+                    mapRef.current.flyTo([latitude, longitude], 18, { animate: true, duration: 1.5 });
+                    
+                    if (layersRef.current.userLocation) {
+                        layersRef.current.userLocation.clearLayers();
+                        L.marker([latitude, longitude], { icon: mapUtils.userLocationIcon })
+                            .addTo(layersRef.current.userLocation)
+                            .bindPopup(t('mapWidget.userLocation'))
+                            .openPopup();
+                    }
+                }
+                setIsLocating(false);
+            },
+            (err) => {
+                console.error(err);
+                showToast(t('mapWidget.locationError'), 'error');
+                setIsLocating(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    };
+
     return (
         <div className="relative w-full h-full bg-iha-900 group">
             <div ref={mapContainerRef} id="topo-map" className="w-full h-full z-0"></div>
@@ -205,7 +293,7 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
                                 {[
                                     { id: 'drone', l: t('mapWidget.drone'), color: 'bg-orange-500' },
                                     { id: 'redLine', l: 'Kırmızı Kot (Tasarım)', color: 'bg-cyan-400' },
-                                    { id: 'alignments', l: 'Yol Eksenleri', color: 'bg-amber-500' }, // Added Alignments
+                                    { id: 'alignments', l: 'Yol Eksenleri', color: 'bg-amber-500' }, 
                                     { id: 'chainage', l: t('mapWidget.chainage'), color: 'bg-blue-500' },
                                     { id: 'polygons', l: t('mapWidget.polygons'), color: 'bg-emerald-500' },
                                     { id: 'issues', l: 'Kalite / NCR', color: 'bg-red-500' },
@@ -224,10 +312,23 @@ export const MapWidget: React.FC<MapWidgetProps> = ({
                 )}
             </div>
             
+            {/* Locate Me Button */}
+            <div className="absolute bottom-24 right-6 z-[1000]">
+                <button 
+                    onClick={handleLocateUser}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-2xl border transition-all ${isLocating ? 'bg-white text-blue-600 border-blue-500' : 'bg-iha-800/90 text-slate-300 border-iha-700 hover:text-white hover:bg-iha-700'}`}
+                    title={t('mapWidget.userLocation')}
+                >
+                    <span className={`material-symbols-outlined text-2xl ${isLocating ? 'animate-spin' : ''}`}>
+                        {isLocating ? 'my_location' : 'near_me'}
+                    </span>
+                </button>
+            </div>
+
             <div className="absolute bottom-6 right-6 z-[1000] flex items-center gap-3">
                 <div className="bg-iha-900/90 backdrop-blur-md border border-iha-700 rounded-xl flex items-stretch shadow-2xl overflow-hidden divide-x divide-iha-700">
                     <div className="px-5 py-3 flex flex-col items-center min-w-[80px]"><span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">{t('mapWidget.zoom')}</span><span className="text-sm font-mono font-bold text-white">{mapStats.zoom}</span></div>
-                    <div className="px-6 py-3 flex flex-col items-center min-w-[140px]"><div className="flex items-center gap-2 mb-0.5"><span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t('mapWidget.avgElevation')}</span><div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></div></div><span className="text-sm font-mono font-bold text-yellow-400">{mapStats.avgElevation} m</span></div>
+                    <div className="px-6 py-3 flex flex-col items-center min-w-[140px]"><div className="flex items-center gap-2 mb-0.5"><span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t('mapWidget.avgElevation')}</span><div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></div></div><span className="text-sm font-mono font-bold text-yellow-400">{mapStats.avgElevation !== '---' ? mapStats.avgElevation + ' m' : '---'}</span></div>
                 </div>
             </div>
         </div>

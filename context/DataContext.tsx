@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { 
     AppData, 
     WeatherData, 
@@ -9,16 +9,19 @@ import {
     StructureElement, 
     ElementCoordinates, 
     Notification, 
+    UserNotification,
     ChangelogEntry,
     StructureLayer,
     StructureSurface,
     MapNote,
-    SitePhoto
+    SitePhoto,
+    ProgressRow
 } from '../types';
-import { MasterAlignment } from '../types/design'; // Added
+import { MasterAlignment } from '../types/design'; 
 import { useUI } from './UIContext';
 import { useAuth } from './AuthContext';
 import { apiService } from '../services/api';
+import { supabase } from '../services/supabase';
 
 // Import Modular Hooks
 import { useDataPersistence } from '../hooks/useDataPersistence';
@@ -27,22 +30,30 @@ import { usePolygonManager } from '../hooks/usePolygonManager';
 import { useChainageManager } from '../hooks/useChainageManager';
 import { useEntityManager } from '../hooks/useEntityManager';
 import { useStructureManager } from '../hooks/useStructureManager';
-import { useMasterDesign } from '../hooks/useMasterDesign'; // Added
+import { useMasterDesign } from '../hooks/useMasterDesign'; 
 
 interface DataContextType {
   data: AppData;
   selectedPolyId: string | null;
   setSelectedPolyId: (id: string | null) => void;
   weather: WeatherData | null;
-  unreadCount: number;
+  unreadCount: number; // General unread (Chat + System)
   resetUnreadCount: () => void;
   
+  // Notification Methods
+  notifications: UserNotification[];
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  sendSystemNotification: (type: 'PVLA' | 'QUALITY' | 'SYSTEM', title: string, message: string, targetRole?: string) => Promise<void>;
+
   // Lazy Load Methods
   loadPvlaFiles: (structureId?: string) => Promise<void>;
   loadSiteIssues: () => Promise<void>;
-  loadNotifications: () => Promise<void>;
+  loadNotifications: () => Promise<void>; // Announcements
+  loadUserNotifications: () => Promise<void>; // Personal Alerts
   loadMapData: () => Promise<void>;
   loadAllPolygons: () => Promise<void>;
+  loadMatrixRows: () => Promise<void>;
 
   // Expose all methods from hooks
   addNotification: (note: Omit<Notification, 'id'>) => Promise<void>;
@@ -73,8 +84,8 @@ interface DataContextType {
 
   addExternalLayer: (layer: any) => void;
   deleteExternalLayer: (id: string) => void;
-  addDesignLayer: (layer: any) => void; // NEW
-  deleteDesignLayer: (id: string) => void; // NEW
+  addDesignLayer: (layer: any) => void; 
+  deleteDesignLayer: (id: string) => void; 
   addLandXmlFile: (file: any) => void;
   deleteLandXmlFile: (id: string) => void;
   toggleLayerVisibility: (id: string) => void;
@@ -119,8 +130,6 @@ interface DataContextType {
   updatePVLAFile: (id: string, file: any) => void;
   deletePVLAFile: (id: string) => Promise<void>;
   updatePVLAIndex: (type: 'Bridge' | 'Culvert', config: any) => void;
-  addPVLAStructure: (structure: any) => Promise<void>;
-  deletePVLAStructure: (id: string) => Promise<void>;
   
   addSlide: (slide: any) => void;
   updateSlide: (id: string, slide: any) => void;
@@ -144,46 +153,8 @@ interface DataContextType {
 
   isSaving: boolean;
 
-  // --- 3D Structure Manager ---
-  struct: {
-      types: StructureType[];
-      structures: StructureTreeItem[];
-      layers: StructureLayer[];
-      isLoading: boolean;
-      loadTypes: () => Promise<void>;
-      loadStructures: () => Promise<void>;
-      loadLayers: () => Promise<void>;
-      addStructureType: (t: any) => Promise<void>;
-      updateStructureType: (id: string, t: any) => Promise<void>;
-      deleteStructureType: (id: string) => Promise<void>;
-      addStructure: (s: any) => Promise<void>;
-      deleteStructure: (id: string) => Promise<void>;
-      
-      addGroup: (g: any) => Promise<void>;
-      updateGroup: (id: string, g: Partial<StructureGroup>) => Promise<void>;
-      deleteGroup: (id: string) => Promise<void>;
-      
-      addElement: (e: any, c: any) => Promise<void>;
-      updateElement: (id: string, e: Partial<StructureElement>, c?: Partial<ElementCoordinates>) => Promise<void>;
-      deleteElement: (id: string) => Promise<void>;
-      
-      addBulkElements: (groupId: string, text: string) => Promise<void>;
-
-      // Earthworks / Layers
-      addLayer: (layer: Omit<StructureLayer, 'id'>) => Promise<void>;
-      deleteLayer: (id: string) => Promise<void>;
-      addSurface: (surface: Omit<StructureSurface, 'id' | 'updatedAt'>) => Promise<void>;
-      deleteSurface: (id: string) => Promise<void>;
-  };
-
-  // --- Master Design ---
-  design: {
-      alignments: MasterAlignment[];
-      isLoading: boolean;
-      loadAlignments: () => Promise<void>;
-      parseAndSaveLandXML: (file: File, description: string, userId?: string) => Promise<void>;
-      deleteAlignment: (id: string) => Promise<void>;
-  }
+  struct: any;
+  design: any;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -198,7 +169,7 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
   const { showToast } = useUI();
   const { setUsers, currentUser } = useAuth();
   
-  // 1. Core Data Persistence (SQL aggregated fetch from db.ts)
+  // 1. Core Data Persistence
   const { data, setData, isSaving, reloadPolygons } = useDataPersistence(setUsers);
   
   // 2. Weather
@@ -207,22 +178,96 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
   // 3. UI State (Local)
   const [selectedPolyId, setSelectedPolyId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0); 
-  const resetUnreadCount = () => setUnreadCount(0);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
 
   // 4. Feature Managers (Hooks)
   const polygonOps = usePolygonManager(data, setData, reloadPolygons, showToast);
   const chainageOps = useChainageManager(setData, showToast);
   const entityOps = useEntityManager(setData, showToast);
-  const structureOps = useStructureManager(showToast);
-  const designOps = useMasterDesign(showToast); // Added
+  
+  const addMatrixRow = useCallback(async (row: ProgressRow) => {
+      const success = await apiService.addMatrixRow(row);
+      if(success) {
+          setData(prev => ({ ...prev, progressMatrix: [...prev.progressMatrix, row] }));
+      } else { showToast('Matris satırı eklenemedi.', 'error'); }
+  }, [setData, showToast]);
 
-  // --- INITIAL SQL DATA LOAD CHECK ---
+  const structureOps = useStructureManager(showToast, data.matrixColumns, addMatrixRow);
+  const designOps = useMasterDesign(showToast); 
+
+  // --- REAL-TIME & NOTIFICATIONS SETUP ---
   useEffect(() => {
-      // DataPersistence loads the main bulk via apiService.fetchData.
-      if (data.notifications && data.notifications.length > 0) {
-          setUnreadCount(data.notifications.length); 
+      if (!currentUser || !supabase) return;
+
+      loadUserNotifications();
+
+      const channel = supabase
+          .channel(`user_alerts:${currentUser.id}`)
+          .on('postgres_changes', 
+              { event: 'INSERT', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${currentUser.id}` }, 
+              (payload) => {
+                  const newNotif = payload.new as any;
+                  setNotifications(prev => [
+                      { 
+                          id: newNotif.id, 
+                          userId: newNotif.user_id, 
+                          type: newNotif.type, 
+                          title: newNotif.title, 
+                          message: newNotif.message, 
+                          link: newNotif.link, 
+                          isRead: newNotif.is_read, 
+                          createdAt: newNotif.created_at 
+                      }, 
+                      ...prev
+                  ]);
+                  showToast(newNotif.title, 'info');
+              }
+          )
+          .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+  }, [currentUser]);
+
+  useEffect(() => {
+      const unreadAlerts = notifications.filter(n => !n.isRead).length;
+      setUnreadCount(unreadAlerts); 
+  }, [notifications]);
+
+  const loadUserNotifications = async () => {
+      if (!currentUser) return;
+      const notes = await apiService.fetchUserNotifications(currentUser.id);
+      setNotifications(notes);
+  };
+
+  const markNotificationRead = async (id: string) => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      await apiService.markNotificationRead(id);
+  };
+
+  const markAllNotificationsRead = async () => {
+      setNotifications([]);
+      if(currentUser) await apiService.markAllNotificationsRead(currentUser.id);
+  };
+
+  const sendSystemNotification = async (type: 'PVLA'|'QUALITY'|'SYSTEM', title: string, message: string, targetRole?: string) => {
+      if (!data.users) return;
+      
+      const targets = targetRole 
+          ? data.users.filter(u => u.role === targetRole || u.role === 'admin')
+          : data.users.filter(u => u.role === 'admin' || u.role === 'editor'); 
+
+      for (const u of targets) {
+          if (u.id !== currentUser?.id) {
+              await apiService.addUserNotification({
+                  userId: u.id,
+                  type,
+                  title,
+                  message,
+                  link: type === 'PVLA' ? 'pvla' : type === 'QUALITY' ? 'topo' : 'dashboard'
+              });
+          }
       }
-  }, [data.notifications]);
+  };
 
   // 5. Lazy Load Implementations
   const loadPvlaFiles = async (structureId?: string) => {
@@ -245,17 +290,20 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       setData(prev => ({ ...prev, mapNotes: notes, sitePhotos: photos }));
   };
 
-  // --- OVERRIDDEN HANDLERS (Direct SQL) ---
+  const loadMatrixRows = async () => {
+      const matrix = await apiService.fetchMatrix();
+      setData(prev => ({ ...prev, progressMatrix: matrix }));
+  };
 
-  // Notifications
+  // --- OVERRIDDEN HANDLERS ---
   const addNotification = async (note: Omit<Notification, 'id'>) => {
       const savedNote = await apiService.addNotification(note);
       if (savedNote) {
           setData(prev => ({ ...prev, notifications: [savedNote, ...prev.notifications] }));
-          setUnreadCount(p => p + 1);
           showToast('Bildirim eklendi.');
+          sendSystemNotification('SYSTEM', 'Yeni Duyuru', note.message.tr, 'viewer');
       } else {
-          showToast('Bildirim eklenirken hata oluştu.', 'error');
+          showToast('Hata oluştu.', 'error');
       }
   };
   const updateNotification = async (id: string, note: Partial<Notification>) => {
@@ -273,7 +321,73 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       } else { showToast('Hata oluştu.', 'error'); }
   };
 
-  // Drone Flights
+  // PVLA FILES
+  const addPVLAFile = async (file: any) => {
+      const saved = await apiService.addPVLAFile(file);
+      if(saved) {
+          setData(prev => ({ ...prev, pvlaFiles: [saved, ...prev.pvlaFiles] }));
+          // Notify
+          const structName = structureOps.structures.find(s => s.id === saved.structureId)?.name || 'Bilinmeyen Yapı';
+          sendSystemNotification('PVLA', 'Yeni Dosya Yüklendi', `${structName} için ${file.name} yüklendi.`);
+      } else { showToast('Dosya kayıt hatası.', 'error'); }
+  };
+  const deletePVLAFile = async (id: string) => {
+      const success = await apiService.deletePVLAFile(id);
+      if(success) {
+          setData(prev => ({ ...prev, pvlaFiles: prev.pvlaFiles.filter(f => f.id !== id) }));
+          showToast('Dosya silindi.');
+      } else { showToast('Hata.', 'error'); }
+  };
+
+  // MATRIX & STATUS UPDATES (Relational Fix)
+  const updateMatrixCell = async (rowId: string, colId: string, cellData: any) => {
+      // Optimistic update
+      const row = data.progressMatrix.find(r => r.id === rowId);
+      if (!row) return;
+      const newCells = { ...row.cells, [colId]: { ...row.cells[colId], ...cellData } };
+      
+      setData(prev => ({ 
+          ...prev, 
+          progressMatrix: prev.progressMatrix.map(r => r.id === rowId ? { ...r, cells: newCells } : r) 
+      }));
+
+      // Call API with specific cell data
+      const success = await apiService.updateMatrixCell(rowId, colId, cellData);
+      
+      if(success) {
+          if (['PENDING', 'SIGNED', 'REJECTED'].includes(cellData.status)) {
+              const structName = structureOps.structures.find(s => s.id === row.structureId)?.name || 'Yapı';
+              let title = 'PVLA Güncellemesi';
+              let msg = '';
+
+              switch(cellData.status) {
+                  case 'PENDING':
+                      title = '⚠️ Onay Bekliyor';
+                      msg = `${structName} - ${row.location} onayınıza sunuldu.`;
+                      break;
+                  case 'SIGNED':
+                      title = '✅ İmalat Onaylandı';
+                      msg = `${structName} - ${row.location} tamamlandı ve imzalandı.`;
+                      break;
+                  case 'REJECTED':
+                      title = '⛔ İmalat Reddedildi';
+                      msg = `${structName} - ${row.location} reddedildi, lütfen kontrol ediniz.`;
+                      break;
+              }
+              sendSystemNotification('PVLA', title, msg);
+          }
+
+      } else { showToast('Hücre güncelleme hatası.', 'error'); }
+  };
+
+  const deleteMatrixRow = async (rowId: string) => {
+      const success = await apiService.deleteMatrixRow(rowId);
+      if(success) {
+          setData(prev => ({ ...prev, progressMatrix: prev.progressMatrix.filter(r => r.id !== rowId) }));
+          showToast('Satır silindi.');
+      } else { showToast('Hata.', 'error'); }
+  };
+
   const addDroneFlight = async (flight: any) => {
       const saved = await apiService.addDroneFlight(flight);
       if (saved) {
@@ -296,7 +410,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       } else { showToast('Hata.', 'error'); }
   };
 
-  // Machinery
   const addMachinery = async (item: any) => {
       const saved = await apiService.addMachinery(item);
       if(saved) {
@@ -312,66 +425,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       } else { showToast('Hata.', 'error'); }
   };
 
-  // PVLA STRUCTURES
-  const addPVLAStructure = async (s: any) => {
-      const saved = await apiService.addPvlaStructure(s);
-      if(saved) {
-          setData(prev => ({ ...prev, pvlaStructures: [...prev.pvlaStructures, saved] }));
-          showToast('Yapı eklendi.');
-      } else { showToast('Hata.', 'error'); }
-  };
-  const deletePVLAStructure = async (id: string) => {
-      const success = await apiService.deletePvlaStructure(id);
-      if(success) {
-          setData(prev => ({ ...prev, pvlaStructures: prev.pvlaStructures.filter(s => s.id !== id) }));
-          showToast('Yapı silindi.');
-      } else { showToast('Hata.', 'error'); }
-  };
-
-  // PVLA FILES
-  const addPVLAFile = async (file: any) => {
-      const saved = await apiService.addPVLAFile(file);
-      if(saved) {
-          setData(prev => ({ ...prev, pvlaFiles: [saved, ...prev.pvlaFiles] }));
-      } else { showToast('Dosya kayıt hatası.', 'error'); }
-  };
-  const deletePVLAFile = async (id: string) => {
-      const success = await apiService.deletePVLAFile(id);
-      if(success) {
-          setData(prev => ({ ...prev, pvlaFiles: prev.pvlaFiles.filter(f => f.id !== id) }));
-          showToast('Dosya silindi.');
-      } else { showToast('Hata.', 'error'); }
-  };
-
-  // MATRIX
-  const addMatrixRow = async (row: any) => {
-      const success = await apiService.addMatrixRow(row);
-      if(success) {
-          setData(prev => ({ ...prev, progressMatrix: [...prev.progressMatrix, row] }));
-      } else { showToast('Hata.', 'error'); }
-  };
-  const deleteMatrixRow = async (rowId: string) => {
-      const success = await apiService.deleteMatrixRow(rowId);
-      if(success) {
-          setData(prev => ({ ...prev, progressMatrix: prev.progressMatrix.filter(r => r.id !== rowId) }));
-          showToast('Satır silindi.');
-      } else { showToast('Hata.', 'error'); }
-  };
-  const updateMatrixCell = async (rowId: string, colId: string, cellData: any) => {
-      const row = data.progressMatrix.find(r => r.id === rowId);
-      if (!row) return;
-      const newCells = { ...row.cells, [colId]: { ...row.cells[colId], ...cellData } };
-      
-      const success = await apiService.updateMatrixCell(rowId, newCells);
-      if(success) {
-          setData(prev => ({ 
-              ...prev, 
-              progressMatrix: prev.progressMatrix.map(r => r.id === rowId ? { ...r, cells: newCells } : r) 
-          }));
-      } else { showToast('Hücre güncelleme hatası.', 'error'); }
-  };
-
-  // CHANGELOGS (Updated to SQL)
   const addChangelog = async (item: Omit<ChangelogEntry, 'id'>) => {
       const saved = await apiService.addChangelog(item);
       if(saved) {
@@ -391,14 +444,13 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       } else { showToast('Silme hatası.', 'error'); }
   };
 
-  // MAP NOTES (Updated to SQL)
   const addMapNote = async (note: Omit<MapNote, 'id'>) => {
       if(!currentUser) { showToast('Oturum açmalısınız', 'error'); return; }
-      const saved = await apiService.addMapNote(note, currentUser.id);
+      const { data: saved, error } = await apiService.addMapNote(note, currentUser.id);
       if (saved) {
           setData(prev => ({ ...prev, mapNotes: [...prev.mapNotes, saved] }));
           showToast('Not haritaya eklendi.');
-      } else { showToast('Hata.', 'error'); }
+      } else { showToast(`Hata: ${error || 'Bilinmeyen Hata'}`, 'error'); }
   };
   const deleteMapNote = async (id: string) => {
       const success = await apiService.deleteMapNote(id);
@@ -408,7 +460,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       } else { showToast('Silinemedi.', 'error'); }
   };
 
-  // SITE PHOTOS (New SQL Method)
   const addSitePhoto = async (photo: Omit<SitePhoto, 'id'>) => {
       if(!currentUser) { showToast('Oturum açmalısınız', 'error'); return; }
       const saved = await apiService.addSitePhoto(photo, currentUser.id);
@@ -425,6 +476,10 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       } else { showToast('Hata.', 'error'); }
   };
 
+  const resetUnreadCount = () => {
+      setUnreadCount(0);
+  };
+
   return (
     <DataContext.Provider value={{ 
       data, 
@@ -434,10 +489,17 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       unreadCount, 
       resetUnreadCount,
       
+      notifications,
+      markNotificationRead,
+      markAllNotificationsRead,
+      sendSystemNotification,
+      loadUserNotifications,
+
       loadPvlaFiles,
       loadSiteIssues,
       loadNotifications,
       loadMapData,
+      loadMatrixRows,
       loadAllPolygons: polygonOps.loadAllPolygons,
 
       ...polygonOps,
@@ -445,19 +507,17 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
       ...chainageOps,
       ...entityOps,
       
-      // Override standard generic ops with specific SQL ops
       addNotification, updateNotification, deleteNotification,
       addDroneFlight, updateDroneFlight, deleteDroneFlight,
       addMachinery, deleteMachinery,
-      addPVLAStructure, deletePVLAStructure,
       addPVLAFile, deletePVLAFile,
       addMatrixRow, deleteMatrixRow, updateMatrixCell,
       addChangelog, updateChangelog, deleteChangelog,
       addMapNote, deleteMapNote,
-      addSitePhoto, deleteSitePhoto, // New overrides
+      addSitePhoto, deleteSitePhoto, 
       
       struct: structureOps, 
-      design: designOps, // Added
+      design: designOps, 
 
       isSaving
     }}>

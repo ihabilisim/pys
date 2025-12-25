@@ -21,8 +21,8 @@ export const MachineryPanel: React.FC = () => {
         updateDashboardWidgets({ machinery: updatedList });
     };
 
-    const handleAddMachine = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAddMachine = (e: React.SyntheticEvent) => {
+        if(e && e.preventDefault) e.preventDefault();
         if (!newMachine.name.tr) return;
         addMachinery({
             name: newMachine.name,

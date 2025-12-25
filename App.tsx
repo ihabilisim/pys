@@ -35,7 +35,8 @@ const AppContent = () => {
   const renderView = () => {
     switch (view) {
       case 'LOGIN':
-        return <Login onLogin={() => setView('ADMIN')} onBack={() => setView('DASHBOARD')} />;
+        // Giriş başarılı olduğunda artık DASHBOARD'a yönlendiriyoruz (ADMIN yerine)
+        return <Login onLogin={() => setView('DASHBOARD')} onBack={() => setView('DASHBOARD')} />;
       case 'ADMIN':
         return <AdminPanel onLogout={() => setView('DASHBOARD')} onPreview={() => setView('DASHBOARD')} />;
       case 'DASHBOARD':

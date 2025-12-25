@@ -1,21 +1,6 @@
-
-import React from 'react';
-import { ThreeElements } from '@react-three/fiber';
-
-declare global {
-  namespace JSX {
-    interface IntrinsicElements extends ThreeElements {
-      ambientLight: any;
-      directionalLight: any;
-      group: any;
-      mesh: any;
-      boxGeometry: any;
-      meshStandardMaterial: any;
-      cylinderGeometry: any;
-      extrudeGeometry: any;
-    }
-  }
-}
+// @FIX: Add react-three-fiber types reference to fix JSX intrinsic element errors.
+/// <reference types="@react-three/fiber" />
+import 'react';
 
 export * from './core';
 export * from './map';
@@ -23,3 +8,5 @@ export * from './project';
 export * from './ui';
 export * from './supabase';
 export * from './structure';
+export * from './design';
+export * from './chat';

@@ -1,16 +1,18 @@
-
+// @FIX: Add react-three-fiber types reference to fix JSX intrinsic element errors.
+/// <reference types="@react-three/fiber" />
 import React, { useMemo, useState, useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ConstructionElement } from './ConstructionElement';
-import { STATUS_COLORS, LABELS } from './constants';
-import { ProgressRow, Language } from '../../types';
+import { STATUS_COLORS, LABELS, MAPPING_KEYWORDS } from './constants';
+import { ProgressRow, Language, MatrixColumn, MatrixStatus, MatrixCell } from '../../types';
 
 interface CulvertGroupProps {
     row: ProgressRow;
+    columns: MatrixColumn[]; 
     position: [number, number, number];
-    onElementClick: (rowId: string, colId: string) => void;
+    onElementClick: (rowId: string, colId: string, cell: MatrixCell) => void;
     language: Language;
 }
 
@@ -33,6 +35,7 @@ const CustomShapeElement = ({ position, rotation, shape, depth, color, onClick, 
     return (
         <group position={position} rotation={rotation || [0, 0, 0]}>
             <mesh
+                ref={meshRef}
                 onClick={(e) => { e.stopPropagation(); onClick(); }}
                 onPointerOver={() => setHover(true)}
                 onPointerOut={() => setHover(false)}
@@ -64,15 +67,70 @@ const CustomShapeElement = ({ position, rotation, shape, depth, color, onClick, 
     );
 };
 
-export const CulvertGroup: React.FC<CulvertGroupProps> = ({ row, position, onElementClick, language }) => {
-    // --- DURUM VERİLERİ ---
-    const stoneStatus = row.cells['c_stone_block']?.status || 'EMPTY'; // Artık Zemin İyileştirme/Blokaj
-    const leanStatus = row.cells['c_slope']?.status || 'EMPTY';
-    const foundationStatus = row.cells['c_concrete']?.status || 'EMPTY'; // Radye & Headwall & Diş
-    const bodyStatus = row.cells['c_concrete']?.status || 'EMPTY'; // Gövde
-    const wingStatus = row.cells['c_chambers']?.status || 'EMPTY'; // Kanatlar
+export const CulvertGroup: React.FC<CulvertGroupProps> = ({ row, columns, position, onElementClick, language }) => {
+    
+    // --- AKILLI SÜTUN EŞLEŞTİRME ---
+    const { stoneId, leanId, raftId, wallId, slabId } = useMemo(() => {
+        
+        const findBestColumn = (keywords: string[]) => {
+            // 1. Adayları bul
+            let candidates = columns.filter(c => {
+                const text = (c.group.tr + ' ' + c.name.tr + ' ' + c.group.en + ' ' + c.name.en).toLowerCase();
+                return keywords.some(k => text.includes(k));
+            });
 
-    const labelPrefix = `${row.structureId}`;
+            // --- DEĞİŞİKLİK: 'VERIFICARE' ÖNCELİĞİ ---
+            // Sadece doğrulama/imalat sütunlarını al
+            const verifCandidates = candidates.filter(c => c.type === 'VERIFICARE');
+            if (verifCandidates.length > 0) {
+                candidates = verifCandidates;
+            }
+
+            if (candidates.length === 0) return undefined;
+
+            // 2. Beton/Concrete önceliği (Zaten VERIFICARE filtresinden geçtiği için burası ikincil bir doğrulama olur)
+            const priorityMatch = candidates.find(c => {
+                const text = (c.name.tr + ' ' + c.name.en).toLowerCase();
+                return MAPPING_KEYWORDS.PRIORITY_TYPES.some(pt => text.includes(pt));
+            });
+
+            return priorityMatch ? priorityMatch.id : candidates[candidates.length - 1].id;
+        };
+
+        return {
+            stoneId: findBestColumn(MAPPING_KEYWORDS.CULVERT.STONE),
+            leanId: findBestColumn(MAPPING_KEYWORDS.CULVERT.LEAN),
+            raftId: findBestColumn(MAPPING_KEYWORDS.CULVERT.FOUNDATION),
+            wallId: findBestColumn(MAPPING_KEYWORDS.CULVERT.WALL),
+            slabId: findBestColumn(MAPPING_KEYWORDS.CULVERT.SLAB)
+        };
+    }, [columns]);
+
+    // --- DURUM VERİLERİ ---
+    const getStatus = (columnId: string | undefined): { status: MatrixStatus, id: string | undefined } => {
+        if (!columnId || !row.cells) return { status: 'EMPTY', id: undefined };
+        const cell = row.cells[columnId];
+        return { status: cell?.status || 'EMPTY', id: columnId };
+    };
+
+    // Mapping 3D Parts to Logical Columns
+    const stoneData = getStatus(stoneId);
+    const leanData = getStatus(leanId);
+    const foundationData = getStatus(raftId);
+    const wallData = getStatus(wallId);
+    const slabData = getStatus(slabId);
+
+    const emptyCell: MatrixCell = { code: '', status: 'EMPTY' };
+
+    const handleClick = (colId: string | undefined) => {
+        if(colId) {
+            onElementClick(row.id, colId, row.cells?.[colId] || emptyCell);
+        } else {
+            console.warn("Bu eleman için matris sütunu bulunamadı.");
+        }
+    };
+
+    const labelPrefix = `${row.location}`;
 
     // --- GEOMETRİK AYARLAR ---
     const BARREL_WIDTH = 3.5;   // Menfez dış genişlik
@@ -166,14 +224,13 @@ export const CulvertGroup: React.FC<CulvertGroupProps> = ({ row, position, onEle
         <group position={position}>
             
             {/* 0. BLOKAJ / ZEMİN İYİLEŞTİRME (Stone Block / Backfill) */}
-            {/* En alt katman: İlave kazı dolgusu */}
             <ConstructionElement 
                 type="box"
                 args={[BARREL_WIDTH + 6, 0.4, TOTAL_LENGTH + (WING_LENGTH * 3.0)]} 
                 position={[0, -0.5, 0]} // En dipte
-                color={STATUS_COLORS[stoneStatus]}
+                color={STATUS_COLORS[stoneData.status]}
                 label={`${LABELS.stone[language]} (Backfill)`}
-                onClick={() => onElementClick(row.id, 'c_stone_block')}
+                onClick={() => handleClick(stoneData.id)}
             />
 
             {/* 1. GROBETON (Lean) - Blokajın üzerinde */}
@@ -181,20 +238,22 @@ export const CulvertGroup: React.FC<CulvertGroupProps> = ({ row, position, onEle
                 type="box"
                 args={[BARREL_WIDTH + 4, 0.2, TOTAL_LENGTH + (WING_LENGTH * 2.5)]} 
                 position={[0, -0.2, 0]} 
-                color={STATUS_COLORS[leanStatus]}
+                color={STATUS_COLORS[leanData.status]}
                 label={`${LABELS.stone[language]} (Lean)`}
-                onClick={() => onElementClick(row.id, 'c_slope')}
+                onClick={() => handleClick(leanData.id)}
             />
 
-            {/* 2. PREFABRİK GÖVDE (SEGMENTLER) */}
+            {/* 2. GÖVDE (Duvarlar + Tabliye aslında, ama burada segment olarak çiziyoruz) */}
+            {/* Eğer Tabliye veya Duvarlar seçilirse bu kısım renklenir */}
             <group position={[0, 0, -TOTAL_LENGTH / 2]}>
                 {Array.from({ length: SEGMENT_COUNT }).map((_, i) => (
                     <group key={i} position={[0, 0, i * SEGMENT_LENGTH]}>
                         <CustomShapeElement 
                             shape={segmentShape}
                             depth={SEGMENT_LENGTH - 0.05} 
-                            color={STATUS_COLORS[bodyStatus]}
-                            onClick={() => onElementClick(row.id, 'c_concrete')}
+                            // Gövde için hem duvar hem tabliye durumunu kontrol edebiliriz, öncelik duvarda
+                            color={STATUS_COLORS[wallData.status === 'EMPTY' ? slabData.status : wallData.status]}
+                            onClick={() => handleClick(wallData.id || slabData.id)}
                             label={i === Math.floor(SEGMENT_COUNT/2) ? 'Culvert Body' : ''}
                         />
                         {/* Bitüm İzolasyon Çizgisi */}
@@ -213,41 +272,41 @@ export const CulvertGroup: React.FC<CulvertGroupProps> = ({ row, position, onEle
                 return (
                     <group key={`end-${dir}`} position={[0, 0, zOffset]} rotation={[0, dir === -1 ? Math.PI : 0, 0]}>
                         
-                        {/* A. BAŞLIK KİRİŞİ (HEADWALL) */}
+                        {/* A. BAŞLIK KİRİŞİ (HEADWALL) - Duvarlara bağlı */}
                         <ConstructionElement 
                             type="box"
                             args={[BARREL_WIDTH, HEADWALL_HEIGHT, 0.4]} 
                             position={[0, BARREL_HEIGHT + (HEADWALL_HEIGHT/2), 0.2]} 
-                            color={STATUS_COLORS[foundationStatus]} 
-                            onClick={() => onElementClick(row.id, 'c_concrete')}
+                            color={STATUS_COLORS[wallData.status]} 
+                            onClick={() => handleClick(wallData.id)}
                         />
 
-                        {/* B. APRON (Genişleyen Zemin) */}
+                        {/* B. APRON (Genişleyen Zemin) - Temele bağlı */}
                         <group rotation={[Math.PI / 2, 0, 0]}> 
                             <CustomShapeElement 
                                 shape={apronShape}
                                 depth={0.6} 
-                                color={STATUS_COLORS[foundationStatus]}
-                                onClick={() => onElementClick(row.id, 'c_concrete')}
+                                color={STATUS_COLORS[foundationData.status]}
+                                onClick={() => handleClick(foundationData.id)}
                             />
                         </group>
 
-                        {/* C. SOL KANAT */}
+                        {/* C. SOL KANAT - Duvarlara bağlı */}
                         <group position={[-BARREL_WIDTH/2, 0, 0]} rotation={[0, Math.PI + FLARE_ANGLE, 0]}>
                             <CustomShapeElement 
                                 shape={wingShape}
                                 depth={WALL_THICKNESS}
-                                color={STATUS_COLORS[wingStatus]}
+                                color={STATUS_COLORS[wallData.status]}
                                 label={dir === 1 ? `${LABELS.wing[language]}` : ''}
-                                onClick={() => onElementClick(row.id, 'c_chambers')}
+                                onClick={() => handleClick(wallData.id)}
                             />
-                            {/* Temel Çıkıntısı */}
+                            {/* Temel Çıkıntısı - Temele bağlı */}
                             <group position={[0, -0.4, 0]}> 
                                 <CustomShapeElement 
                                     shape={wingFooterShape}
                                     depth={WALL_THICKNESS + 0.3} 
-                                    color={STATUS_COLORS[foundationStatus]}
-                                    onClick={() => onElementClick(row.id, 'c_concrete')}
+                                    color={STATUS_COLORS[foundationData.status]}
+                                    onClick={() => handleClick(foundationData.id)}
                                 />
                             </group>
                         </group>
@@ -258,27 +317,27 @@ export const CulvertGroup: React.FC<CulvertGroupProps> = ({ row, position, onEle
                                 <CustomShapeElement 
                                     shape={wingShape}
                                     depth={WALL_THICKNESS}
-                                    color={STATUS_COLORS[wingStatus]}
-                                    onClick={() => onElementClick(row.id, 'c_chambers')}
+                                    color={STATUS_COLORS[wallData.status]}
+                                    onClick={() => handleClick(wallData.id)}
                                 />
                                 <group position={[-0.2, -0.4, 0]}>
                                     <CustomShapeElement 
                                         shape={wingFooterShape}
                                         depth={WALL_THICKNESS + 0.3}
-                                        color={STATUS_COLORS[foundationStatus]}
-                                        onClick={() => onElementClick(row.id, 'c_concrete')}
+                                        color={STATUS_COLORS[foundationData.status]}
+                                        onClick={() => handleClick(foundationData.id)}
                                     />
                                 </group>
                             </group>
                         </group>
 
-                        {/* E. DİŞ (CUT-OFF WALL) */}
+                        {/* E. DİŞ (CUT-OFF WALL) - Temele bağlı */}
                         <ConstructionElement 
                             type="box"
                             args={[BARREL_WIDTH * 2.2, 1.5, 0.5]} 
                             position={[0, -0.75, WING_LENGTH]} 
-                            color={STATUS_COLORS[foundationStatus]}
-                            onClick={() => onElementClick(row.id, 'c_concrete')}
+                            color={STATUS_COLORS[foundationData.status]}
+                            onClick={() => handleClick(foundationData.id)}
                         />
 
                     </group>

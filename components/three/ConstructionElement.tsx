@@ -1,3 +1,5 @@
+// @FIX: Add react-three-fiber types reference to fix JSX intrinsic element errors.
+/// <reference types="@react-three/fiber" />
 import React, { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Billboard } from '@react-three/drei';
@@ -27,10 +29,7 @@ export const ConstructionElement = ({ position, args, color, onClick, label, typ
             // Assumption: polygonPoints are offsets relative to 'position'. 
             // OR: If they are absolute coordinates, the caller should have set 'position' to 0,0,0
             
-            // For simplicity in this visualization context, let's assume points are relative to the center 
-            // OR we calculate the center from points and shift shape.
-            
-            // Let's assume polygonPoints are local [x, z] offsets.
+            // For simplicity in this visualization context, let's assume points are local [x, z] offsets.
             shape.moveTo(polygonPoints[0].x, polygonPoints[0].y);
             for (let i = 1; i < polygonPoints.length; i++) {
                 shape.lineTo(polygonPoints[i].x, polygonPoints[i].y);

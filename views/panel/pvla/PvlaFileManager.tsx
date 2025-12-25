@@ -5,14 +5,11 @@ import { useUI } from '../../../context/UIContext';
 import { apiService } from '../../../services/api';
 
 export const PvlaFileManager: React.FC = () => {
-    const { data, addPVLAStructure, deletePVLAStructure, addPVLAFile, deletePVLAFile, loadPvlaFiles } = useData();
+    const { data, struct, addPVLAFile, deletePVLAFile, loadPvlaFiles } = useData();
     const { showToast } = useUI();
 
     const [activePvlaType, setActivePvlaType] = useState<'Bridge' | 'Culvert'>('Bridge');
     const [selectedStructureId, setSelectedStructureId] = useState<string>(''); 
-    const [newStructureName, setNewStructureName] = useState('');
-    const [newStructureKm, setNewStructureKm] = useState('');
-    const [newStructurePath, setNewStructurePath] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
     const [dragActive, setDragActive] = useState(false);
@@ -29,20 +26,6 @@ export const PvlaFileManager: React.FC = () => {
         }
     }, [selectedStructureId]);
 
-    const handleAddStructure = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newStructureName || !newStructureKm) return;
-        let finalPath = newStructurePath;
-        if (!finalPath) {
-            const cleanKm = newStructureKm.replace(/km/gi, '').trim();
-            const folderType = activePvlaType === 'Bridge' ? 'Bridges' : 'Culverts';
-            finalPath = `PVLA/${folderType}/${cleanKm}`;
-        }
-        addPVLAStructure({ name: newStructureName, type: activePvlaType, km: newStructureKm, path: finalPath });
-        setNewStructureName(''); setNewStructureKm(''); setNewStructurePath('');
-        showToast(`${activePvlaType} eklendi.`);
-    };
-
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault(); e.stopPropagation();
         if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
@@ -54,7 +37,7 @@ export const PvlaFileManager: React.FC = () => {
         
         if (!selectedStructureId) { showToast("Lütfen yapı seçiniz.", 'error'); return; }
         
-        const structure = data.pvlaStructures.find(s => s.id === selectedStructureId);
+        const structure = struct.structures.find(s => s.id === selectedStructureId);
         
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
            setIsUploading(true);
@@ -63,7 +46,7 @@ export const PvlaFileManager: React.FC = () => {
 
            for (const file of files) {
                const safeStructName = structure?.name.replace(/[^a-zA-Z0-9]/g, '_') || 'Unknown';
-               const folderPath = `pvla/${structure?.type || 'General'}/${safeStructName}`;
+               const folderPath = `pvla/${activePvlaType}/${safeStructName}`;
 
                showToast(`${file.name} yükleniyor...`, 'info');
 
@@ -72,9 +55,10 @@ export const PvlaFileManager: React.FC = () => {
                if (error) {
                    showToast(`HATA (${file.name}): ${error}`, 'error');
                } else if (publicUrl) {
+                   const type = struct.types.find(t => t.id === structure?.typeId);
                    addPVLAFile({
                        name: file.name, 
-                       type: structure?.type || 'Bridge', 
+                       type: type?.code === 'POD' ? 'Bridge' : 'Culvert', 
                        structureId: selectedStructureId, 
                        structureName: structure?.name || 'Unknown', 
                        date: new Date().toISOString().split('T')[0], 
@@ -88,13 +72,15 @@ export const PvlaFileManager: React.FC = () => {
            if (successCount > 0) showToast(`${successCount} dosya başarıyla yüklendi.`, 'success');
         }
     };
+    
+    const structureList = struct.structures.filter(s => s.typeCode === (activePvlaType === 'Bridge' ? 'POD' : 'DG'));
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
             {/* Structure Manager */}
             <div className="bg-iha-800 p-6 rounded-2xl border border-iha-700 shadow-xl">
                 <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-blue-500">domain</span> Yapı Tanımları
+                    <span className="material-symbols-outlined text-blue-500">domain</span> Yapı Listesi
                 </h3>
                 
                 <div className="flex gap-2 mb-4">
@@ -102,18 +88,15 @@ export const PvlaFileManager: React.FC = () => {
                     <button onClick={() => setActivePvlaType('Culvert')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activePvlaType === 'Culvert' ? 'bg-emerald-600 text-white' : 'bg-iha-900 text-slate-500'}`}>Culverts</button>
                 </div>
 
-                <form onSubmit={handleAddStructure} className="space-y-3 mb-6 bg-iha-900/50 p-3 rounded-xl border border-iha-700">
-                    <input placeholder="Yapı Adı (Örn: POD01)" value={newStructureName} onChange={e => setNewStructureName(e.target.value)} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-2 text-white text-xs" />
-                    <input placeholder="KM (Örn: 4+350)" value={newStructureKm} onChange={e => setNewStructureKm(e.target.value)} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-2 text-white text-xs" />
-                    <input placeholder="Klasör Yolu (Opsiyonel)" value={newStructurePath} onChange={e => setNewStructurePath(e.target.value)} className="w-full bg-iha-900 border border-iha-700 rounded-lg p-2 text-white text-xs" />
-                    <button className="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold">Yapı Ekle</button>
-                </form>
+                <div className="bg-blue-900/20 p-4 rounded-xl border border-blue-500/30 text-blue-200 text-sm mb-4">
+                    <p className="font-bold">Bilgilendirme</p>
+                    <p className="text-xs mt-1">PVLA yapıları artık <strong className="font-bold">Yapı Envanteri</strong> modülünden yönetilmektedir. Yeni yapı eklemek için o modülü kullanınız.</p>
+                </div>
 
-                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                    {data.pvlaStructures.filter(s => s.type === activePvlaType).map(s => (
+                <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                    {structureList.map(s => (
                         <div key={s.id} onClick={() => setSelectedStructureId(s.id)} className={`p-3 rounded-xl border cursor-pointer flex justify-between items-center ${selectedStructureId === s.id ? 'bg-blue-500/20 border-blue-500/50' : 'bg-iha-900 border-iha-700 hover:border-slate-500'}`}>
-                            <div><p className="text-xs font-bold text-white">{s.name}</p><p className="text-[10px] text-slate-500">{s.km}</p></div>
-                            <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Yapıyı silmek istediğinize emin misiniz?')) deletePVLAStructure(s.id); }} className="text-red-400 hover:text-white"><span className="material-symbols-outlined text-sm">delete</span></button>
+                            <div><p className="text-xs font-bold text-white">{s.name}</p><p className="text-[10px] text-slate-500">{s.code}</p></div>
                         </div>
                     ))}
                 </div>
@@ -123,7 +106,7 @@ export const PvlaFileManager: React.FC = () => {
             <div className="lg:col-span-2 bg-iha-800 p-6 rounded-2xl border border-iha-700 shadow-xl flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-white font-bold flex items-center gap-2"><span className="material-symbols-outlined text-emerald-500">folder_open</span> Dosya Yöneticisi</h3>
-                    <span className="text-xs text-slate-500">{selectedStructureId ? data.pvlaStructures.find(s => s.id === selectedStructureId)?.name : 'Yapı Seçilmedi'}</span>
+                    <span className="text-xs text-slate-500">{selectedStructureId ? struct.structures.find(s => s.id === selectedStructureId)?.name : 'Yapı Seçilmedi'}</span>
                 </div>
 
                 {selectedStructureId ? (

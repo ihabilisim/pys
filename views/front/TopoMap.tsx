@@ -102,7 +102,7 @@ export const TopoMap: React.FC<TopoMapProps> = ({ isActive }) => {
 
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 <div className="flex-1 relative flex overflow-hidden">
-                    <div className={`flex-1 relative transition-all duration-300 h-full ${activeTool === 'utilities' ? 'mr-80' : ''}`}>
+                    <div className="flex-1 relative transition-all duration-300 h-full">
                         <MapWidget 
                             activeTool={activeTool} 
                             setActiveTool={setActiveTool} 

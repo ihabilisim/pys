@@ -22,8 +22,8 @@ export const AdminMaterials: React.FC = () => {
         return <div className="text-slate-500 p-8 text-center">{t('common.noPermission')}</div>;
     }
 
-    const handleAddStock = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAddStock = (e: React.SyntheticEvent) => {
+        if(e && e.preventDefault) e.preventDefault();
         if(!newStock.name.tr) return;
         addStockItem({
             name: newStock.name,
@@ -35,8 +35,8 @@ export const AdminMaterials: React.FC = () => {
         setNewStock({ name: { tr: '', en: '', ro: '' }, quantity: 0, unit: 'Ton', critical: 0, icon: 'inventory_2' });
     };
 
-    const handleAddBoQ = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAddBoQ = (e: React.SyntheticEvent) => {
+        if(e && e.preventDefault) e.preventDefault();
         if(!newBoQ.name.tr) return;
         addBoQItem({ 
             code: newBoQ.code,

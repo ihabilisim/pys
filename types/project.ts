@@ -36,6 +36,18 @@ export interface BoQItem {
     unit: string;
 }
 
+// --- FEEDBACK ---
+export interface FeedbackSubmission {
+    id: string;
+    fullName: string;
+    email?: string | null;
+    phone?: string | null;
+    subject: string;
+    content: string;
+    status: 'NEW' | 'READ' | 'IN_PROGRESS' | 'RESOLVED';
+    createdAt: string;
+}
+
 // --- MATRIX TYPES ---
 export type MatrixStatus = 'EMPTY' | 'PREPARING' | 'PENDING' | 'SIGNED' | 'REJECTED';
 
@@ -52,14 +64,17 @@ export interface MatrixColumn {
     name: LocalizedString;
     group: LocalizedString;
     type: 'TRASARE' | 'VERIFICARE' | 'INFO';
+    orderIndex?: number; 
 }
 
 export interface ProgressRow {
-    id: string;
-    structureId: string;
+    id: string; 
+    structureId: string; 
+    structureGroupId: string; 
     location: string;
     foundationType?: string;
-    orderIndex: number; // Added for 3D Sorting (KM Logic)
+    orderIndex: number; 
+    direction?: 'L' | 'R' | 'C';
     cells: Record<string, MatrixCell>;
 }
 
@@ -140,6 +155,10 @@ export interface ChangelogEntry {
     version: string;
     date: string;
     title: LocalizedString;
-    changes: string[]; // List of changes strings
+    changes: {
+        tr: string[];
+        en: string[];
+        ro: string[];
+    }; 
     type: 'major' | 'minor' | 'patch';
 }

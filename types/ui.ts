@@ -1,6 +1,7 @@
 
 import { LocalizedString, UserProfile, User, AppSettings } from './core';
-import { ProductionStat, MachineryStat, DailyLog, TimelinePhase, InfrastructureProject, ShortcutItem, StockItem, BoQItem, PVLAIndexConfig, PVLAStructure, PVLAFile, MatrixColumn, ProgressRow, DroneFlight, ChangelogEntry } from './project';
+// @FIX: Add PVLAStructure to import
+import { ProductionStat, MachineryStat, DailyLog, TimelinePhase, InfrastructureProject, ShortcutItem, StockItem, BoQItem, PVLAIndexConfig, PVLAFile, MatrixColumn, ProgressRow, DroneFlight, ChangelogEntry, PVLAStructure } from './project';
 import { TopoItem, PolygonPoint, ExternalMapLayer, UtilityCategory, SitePhoto, ChainageMarker, SiteIssue, MapNote, TopoData, LandXMLFile, DesignLayer } from './map';
 
 export type ViewMode = 'DASHBOARD' | 'LOGIN' | 'ADMIN';
@@ -12,6 +13,18 @@ export interface Notification {
   message: LocalizedString;
   author: string;
   type: 'update' | 'alert' | 'info';
+}
+
+// Yeni Kişisel Bildirim Tipi
+export interface UserNotification {
+    id: string;
+    userId: string;
+    type: 'CHAT' | 'PVLA' | 'SYSTEM' | 'QUALITY';
+    title: string;
+    message: string;
+    link?: string;
+    isRead: boolean;
+    createdAt: string;
 }
 
 export interface Toast {
@@ -34,7 +47,7 @@ export interface MenuItemConfig {
   icon: string;
   visible: boolean;
   order: number;
-  children?: MenuItemConfig[]; // NEW: Support for sub-menus
+  children?: MenuItemConfig[];
 }
 
 export interface MenuConfig {
@@ -63,13 +76,14 @@ export interface AppData {
   dashboardWidgets: DashboardWidgets;
   timelinePhases: TimelinePhase[];
   notifications: Notification[];
+  userNotifications: UserNotification[]; // Eklendi
   infraProjects: InfrastructureProject[];
   shortcuts: ShortcutItem[];
   topoItems: TopoItem[];
   polygonPoints: PolygonPoint[];
   
   externalLayers: ExternalMapLayer[]; 
-  designLayers: DesignLayer[]; // NEW: Separate list for Master Design alignments
+  designLayers: DesignLayer[];
   utilityCategories: UtilityCategory[];
   landXmlFiles: LandXMLFile[]; 
 
@@ -90,14 +104,16 @@ export interface AppData {
     Bridge: PVLAIndexConfig;
     Culvert: PVLAIndexConfig;
   };
+  
+  // @FIX: Add pvlaStructures property back to AppData
   pvlaStructures: PVLAStructure[];
   pvlaFiles: PVLAFile[];
   
   topoData: TopoData;
   slides: SliderItem[];
   droneFlights: DroneFlight[]; 
-  menuConfig: MenuConfig; // Deprecated but kept for compatibility
-  menuStructure: MenuItemConfig[]; // NEW: Dynamic Menu Structure
+  menuConfig: MenuConfig; 
+  menuStructure: MenuItemConfig[];
   settings: AppSettings;
-  changelog: ChangelogEntry[]; // Added Changelog
+  changelog: ChangelogEntry[];
 }

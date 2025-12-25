@@ -17,7 +17,9 @@ export interface StructureMain {
     kmEnd?: number;
     isSplit: boolean; // True if structure has separate Left/Right sides
     // Helper property for UI (joined from types)
-    typeCode?: string; 
+    typeCode?: string;
+    // Linked Path for PVLA
+    path?: string; 
 }
 
 export interface StructureLayer {

@@ -45,6 +45,7 @@ export const DEMO_MENU: MenuConfig = {
 
 export const DEFAULT_MENU_STRUCTURE: MenuItemConfig[] = [
     { id: 'dashboard', order: 0, visible: true, icon: 'dashboard', label: { tr: 'Kontrol Paneli', en: 'Dashboard', ro: 'Panou de Control' } },
+    { id: 'chat', order: 0.5, visible: true, icon: 'forum', label: { tr: 'Sohbet', en: 'Chat', ro: 'Chat' } },
     { id: 'topo', order: 1, visible: true, icon: 'landscape', label: { tr: 'Topografik Harita', en: 'Topographic Map', ro: 'Hartă Topografică' } },
     { 
         id: 'pvla', 

@@ -47,13 +47,25 @@ export const GeneralSettings: React.FC<Props> = ({ settings, setSettings, lang, 
         }
         
         setMissingTables(missing);
+        
+        // --- 1. SCHEMA SQL ---
         if (missing.length > 0) {
             setDbStatus('error');
             generateSmartSql(missing);
         } else {
             setDbStatus('ok');
             setGeneratedSchemaSql("-- Tüm tablolar mevcut. Sistem güncel.\n-- All tables present. System up to date.");
-            setGeneratedSeedSql("-- Tablolar mevcut. Demo veriye ihtiyacınız yoksa bu adımı geçebilirsiniz.\n-- Tables present. You can skip this unless you need demo data.");
+            
+            // --- 2. ALWAYS GENERATE SEED SQL (Fix for Empty Data) ---
+            let seedSql = `-- IHA PYS - FULL DEMO DATA GENERATOR\n`;
+            seedSql += `-- Tablolar mevcut olsa bile verileri sıfırlayıp yükler.\n`;
+            seedSql += `-- UYARI: structure_groups, structures_main vb. tablolar TEMİZLENECEKTİR.\n\n`;
+            
+            Object.keys(SEED_DATA_SCHEMAS).forEach(table => {
+                seedSql += `\n-- Seed for ${table}\n` + SEED_DATA_SCHEMAS[table] + "\n";
+            });
+            
+            setGeneratedSeedSql(seedSql);
         }
     };
 
@@ -71,27 +83,16 @@ export const GeneralSettings: React.FC<Props> = ({ settings, setSettings, lang, 
             }
         });
 
-        // For Global Policy
-        schemaSql += `\n-- GLOBAL POLICY REFRESH (Safe to run)\nDO $$ \nDECLARE \n  t text;\nBEGIN\n  FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' \n  LOOP\n    EXECUTE format('DROP POLICY IF EXISTS "Allow All" ON %I', t);\n    EXECUTE format('CREATE POLICY "Allow All" ON %I FOR ALL USING (true)', t);\n  END LOOP;\nEND $$;`;
-
         setGeneratedSchemaSql(schemaSql);
 
-        // Smart Seed Generation
+        // Smart Seed Generation (Only missing or full if requested via other means, but here we prioritize missing)
+        // If status is error, we still provide full seed option usually, but let's just do full seed for simplicity
         let seedSql = `-- IHA PYS - SMART SEED DATA\n`;
-        seedSql += `-- Eksik tablolar için örnek veriler aşağıdadır.\n\n`;
+        seedSql += `-- Tablolar oluşturulduktan sonra çalıştırın.\n\n`;
         
-        missing.forEach(table => {
-            if (SEED_DATA_SCHEMAS[table]) {
-                seedSql += `\n-- Seed for ${table}\n` + SEED_DATA_SCHEMAS[table] + "\n";
-            }
+        Object.keys(SEED_DATA_SCHEMAS).forEach(table => {
+             seedSql += `\n-- Seed for ${table}\n` + SEED_DATA_SCHEMAS[table] + "\n";
         });
-        
-        // If no missing tables but user wants seed, provide full seed just in case?
-        // No, user asked to avoid repetition. If tables are missing, we provide seed for THOSE tables.
-        if (missing.length === 0) {
-             seedSql += `-- Tüm tablolar var. Veri eklemek istiyorsanız manuel SQL kullanın veya aşağıdaki tam seti kopyalayın (isteğe bağlı).\n`;
-             // Optional: Append full seed if requested, but kept clean for now.
-        }
 
         setGeneratedSeedSql(seedSql);
     };
@@ -99,6 +100,16 @@ export const GeneralSettings: React.FC<Props> = ({ settings, setSettings, lang, 
     const handleCopySql = (sql: string) => {
         navigator.clipboard.writeText(sql);
         showToast('SQL Kodu kopyalandı!', 'success');
+    };
+
+    const handleForceRepair = () => {
+        // Force regenerate SQL with migration block even if tables exist
+        let schemaSql = `-- IHA PYS - FORCED PERMISSION REPAIR\n`;
+        schemaSql += `-- Tablolar mevcut olsa bile izinleri ve şemayı onarır.\n\n`;
+        schemaSql += MIGRATION_BLOCK + "\n";
+        setGeneratedSchemaSql(schemaSql);
+        setShowSql(true);
+        showToast('Onarım SQL\'i oluşturuldu. Kopyalayıp çalıştırın.', 'info');
     };
 
     return (
@@ -145,14 +156,21 @@ export const GeneralSettings: React.FC<Props> = ({ settings, setSettings, lang, 
                     </div>
                     
                     <div className="flex gap-2">
+                        {dbStatus === 'ok' && (
+                            <button onClick={handleForceRepair} className="text-xs px-3 py-1.5 rounded-lg border font-bold flex items-center gap-1 bg-yellow-600 text-white border-yellow-500 hover:bg-yellow-500">
+                                <span className="material-symbols-outlined text-sm">build</span>
+                                İzinleri Onar
+                            </button>
+                        )}
+
                         <button onClick={() => { setShowSql(!showSql); setShowSeedSql(false); }} className={`text-xs px-3 py-1.5 rounded-lg border font-bold flex items-center gap-1 ${showSql ? 'bg-blue-600 text-white border-blue-500' : 'bg-iha-900 text-slate-400 border-iha-700 hover:text-white'}`}>
                             <span className="material-symbols-outlined text-sm">code</span>
-                            {showSql ? 'SQL Gizle' : `Adım 1: Tablo Oluştur (${missingTables.length} Eksik)`}
+                            {showSql ? 'SQL Gizle' : `Adım 1: Tablo Oluştur`}
                         </button>
                         
                         <button onClick={() => { setShowSeedSql(!showSeedSql); setShowSql(false); }} className={`text-xs px-3 py-1.5 rounded-lg border font-bold flex items-center gap-1 ${showSeedSql ? 'bg-green-600 text-white border-green-500' : 'bg-iha-900 text-slate-400 border-iha-700 hover:text-white'}`}>
                             <span className="material-symbols-outlined text-sm">storage</span>
-                            {showSeedSql ? 'SQL Gizle' : 'Adım 2: Demo Veri Yükle (SQL)'}
+                            {showSeedSql ? 'SQL Gizle' : 'Adım 2: Demo Veri Yükle'}
                         </button>
                     </div>
                 </div>
@@ -170,8 +188,11 @@ export const GeneralSettings: React.FC<Props> = ({ settings, setSettings, lang, 
                 {showSeedSql && (
                     <div className="mt-4 animate-in slide-in-from-top-2">
                         <div className="flex justify-between items-center mb-2">
-                            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Demo Veri (Eksik Tablolar İçin)</span>
+                            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Demo Veri SQL</span>
                             <button onClick={() => handleCopySql(generatedSeedSql)} className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded hover:bg-green-500/20 font-bold uppercase">Kopyala</button>
+                        </div>
+                        <div className="mb-2 bg-orange-500/10 border border-orange-500/20 p-2 rounded text-[10px] text-orange-300">
+                            <strong>UYARI:</strong> Bu SQL komutu tabloları temizleyip (DELETE) yeniden doldurur. Mevcut veriniz varsa yedekleyiniz.
                         </div>
                         <textarea readOnly value={generatedSeedSql} className="w-full h-64 bg-black/50 border border-iha-700 rounded-lg p-3 text-[10px] font-mono text-orange-400 focus:outline-none custom-scrollbar" />
                     </div>
