@@ -18,13 +18,18 @@ export const v2 = {
         errorCaptcha: "Ați răspuns incorect la întrebarea de verificare.",
         errorSubmit: "A apărut o eroare. Vă rugăm să încercați din nou.",
         successSubmit: "Feedback-ul dumneavoastră a fost trimis cu succes. Vă mulțumim!",
-        nametext: "Numele tău",
         subjects: {
             suggestion: "Sugestie de îmbunătățire",
             bug: "Raport de eroare",
             data: "Cerere de actualizare a datelor",
             feature: "Cerere de funcționalitate nouă",
             other: "Altele"
+        },
+        placeholder: {
+            fullName: "Numele și Prenumele Dvs....",
+            email: "exemplu@companie.ro",
+            phone: "+40 7XX XXX XXX",
+            captcha: "Rezultat?"
         }
     },
     admin: {
@@ -40,6 +45,7 @@ export const v2 = {
             delete: "Șterge Mesajul",
             statusUpdated: "Stare actualizată.",
             deleted: "Șters.",
+            deleteConfirm: "Sunteți sigur că doriți să ștergeți definitiv acest feedback?",
             status: {
                 NEW: "NOU",
                 READ: "CITIT",
@@ -47,5 +53,12 @@ export const v2 = {
                 RESOLVED: "REZOLVAT"
             }
         }
+    },
+    sidebar: {
+        feedback: "Feedback-uri",
+        changelog: "Jurnal Modificări",
+        structureInventory: "Inventar Structuri",
+        aiAssistant: "Asistent Proiect",
+        masterDesign: "Master Design"
     }
 };

@@ -18,13 +18,18 @@ export const v2 = {
         errorCaptcha: "You answered the verification question incorrectly.",
         errorSubmit: "An error occurred. Please try again.",
         successSubmit: "Your feedback has been successfully sent. Thank you!",
-        nametext: "Your Name",
         subjects: {
             suggestion: "Improvement Suggestion",
             bug: "Bug Report",
             data: "Data Update Request",
             feature: "New Feature Request",
             other: "Other"
+        },
+        placeholder: {
+            fullName: "Your Name and Surname...",
+            email: "example@company.com",
+            phone: "+44 7XXX XXXXXX",
+            captcha: "Result?"
         }
     },
     admin: {
@@ -40,6 +45,7 @@ export const v2 = {
             delete: "Delete Message",
             statusUpdated: "Status updated.",
             deleted: "Deleted.",
+            deleteConfirm: "Are you sure you want to permanently delete this feedback?",
             status: {
                 NEW: "NEW",
                 READ: "READ",
@@ -47,5 +53,12 @@ export const v2 = {
                 RESOLVED: "RESOLVED"
             }
         }
+    },
+    sidebar: {
+        feedback: "Feedbacks",
+        changelog: "Changelog",
+        structureInventory: "Structure Inventory",
+        aiAssistant: "Project Assistant",
+        masterDesign: "Master Design"
     }
 };

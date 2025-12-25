@@ -1,5 +1,5 @@
-// @FIX: Add react-three-fiber types reference to fix JSX intrinsic element errors.
 /// <reference types="@react-three/fiber" />
+// Fix: Moved react-three-fiber types reference to the top of the file to resolve JSX intrinsic element errors.
 import React, { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, Grid } from '@react-three/drei';

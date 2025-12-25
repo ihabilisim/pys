@@ -30,7 +30,7 @@ export const AdminFeedback: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if(!confirm(t('common.deleteConfirm'))) return;
+        if(!confirm(t('v2.admin.feedback.deleteConfirm'))) return;
         const success = await siteRepository.deleteFeedback(id);
         if (success) {
             setFeedbacks(prev => prev.filter(f => f.id !== id));

@@ -83,15 +83,15 @@ export const FeedbackPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="group col-span-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-2 ml-1 group-focus-within:text-blue-500 transition-colors">{t('v2.feedback.fullName')}</label>
-                            <input required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-2xl p-4 text-white focus:border-blue-500 outline-none transition-all shadow-inner font-bold" placeholder="..." />
+                            <input required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-2xl p-4 text-white focus:border-blue-500 outline-none transition-all shadow-inner font-bold" placeholder={t('v2.feedback.placeholder.fullName')} />
                         </div>
                         <div className="group">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-2 ml-1 group-focus-within:text-blue-500 transition-colors">{t('v2.feedback.email')}</label>
-                            <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-2xl p-4 text-white focus:border-blue-500 outline-none transition-all shadow-inner" placeholder="...@haritaci.com.tr" />
+                            <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-2xl p-4 text-white focus:border-blue-500 outline-none transition-all shadow-inner" placeholder={t('v2.feedback.placeholder.email')} />
                         </div>
                          <div className="group">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-2 ml-1 group-focus-within:text-blue-500 transition-colors">{t('v2.feedback.phone')}</label>
-                            <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-2xl p-4 text-white focus:border-blue-500 outline-none transition-all shadow-inner" placeholder="+90..." />
+                            <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-iha-900 border border-iha-700 rounded-2xl p-4 text-white focus:border-blue-500 outline-none transition-all shadow-inner" placeholder={t('v2.feedback.placeholder.phone')} />
                         </div>
                     </div>
 
@@ -113,15 +113,15 @@ export const FeedbackPage: React.FC = () => {
 
                     <div className="bg-iha-900/50 p-5 rounded-3xl border border-iha-700 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-white font-mono font-black border border-slate-700 shadow-lg text-lg">
+                            <div className="w-24 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-white font-mono font-black border border-slate-700 shadow-lg text-lg">
                                 {captcha.a} + {captcha.b}
                             </div>
                             <span className="material-symbols-outlined text-slate-600">equal</span>
-                            <input required value={captcha.userValue} onChange={e => setCaptcha({...captcha, userValue: e.target.value})} className="w-24 bg-iha-900 border border-iha-700 rounded-xl p-3 text-center text-white font-black text-xl outline-none focus:border-blue-500" placeholder="..." />
+                            <input required value={captcha.userValue} onChange={e => setCaptcha({...captcha, userValue: e.target.value})} className="w-24 bg-iha-900 border border-iha-700 rounded-xl p-3 text-center text-white font-black text-xl outline-none focus:border-blue-500" placeholder={t('v2.feedback.placeholder.captcha')} />
                         </div>
                         <div className="text-right">
                              <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">{t('v2.feedback.captcha')}</p>
-                             <button type="button" onClick={resetCaptcha} className="text-[9px] text-blue-500 font-bold hover:underline">{t('v2.feedback.captchaChange')}</button>
+                             <button type="button" onClick={resetCaptcha} className="text-[8px] text-blue-500 font-bold hover:underline">{t('v2.feedback.captchaChange')}</button>
                         </div>
                     </div>
 

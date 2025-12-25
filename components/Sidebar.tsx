@@ -4,6 +4,9 @@ import { useData } from '../context/DataContext';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 import { MenuItemConfig } from '../types';
+import { tr } from '../lang/tr';
+import { en } from '../lang/en';
+import { ro } from '../lang/ro';
 
 interface SidebarProps {
   activeTab?: string;
@@ -41,17 +44,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', order: 0, visible: true, icon: 'campaign', label: { tr: t('sidebar.dashboard'), en: 'Dashboard', ro: 'Panou' } },
     { id: 'shortcuts', order: 1, visible: true, icon: 'bookmark', label: { tr: t('sidebar.shortcuts'), en: 'Shortcuts', ro: 'Scurtături' } },
     { id: 'layout', order: 2, visible: true, icon: 'map', label: { tr: t('sidebar.layout'), en: 'Layout', ro: 'Plan' } },
-    { id: 'master-design', order: 2.5, visible: true, icon: 'design_services', label: { tr: 'Master Design', en: 'Master Design', ro: 'Master Design' } }, 
+    { id: 'master-design', order: 2.5, visible: true, icon: 'design_services', label: { tr: tr.v2.sidebar.masterDesign, en: en.v2.sidebar.masterDesign, ro: ro.v2.sidebar.masterDesign } }, 
     { id: 'topo', order: 3, visible: true, icon: 'landscape', label: { tr: t('sidebar.topo'), en: 'Topo', ro: 'Topo' } },
-    { id: 'structure-inventory', order: 3.5, visible: true, icon: 'view_in_ar', label: { tr: 'Yapı Envanteri', en: 'Struct. Inventory', ro: 'Inventar Structuri' } },
+    { id: 'structure-inventory', order: 3.5, visible: true, icon: 'view_in_ar', label: { tr: tr.v2.sidebar.structureInventory, en: en.v2.sidebar.structureInventory, ro: ro.v2.sidebar.structureInventory } },
     { id: 'materials', order: 4, visible: true, icon: 'inventory_2', label: { tr: t('sidebar.materials'), en: 'Materials', ro: 'Materiale' } },
     { id: 'infra', order: 5, visible: true, icon: 'foundation', label: { tr: t('sidebar.infra'), en: 'Infra', ro: 'Infra' } },
     { id: 'pvla', order: 6, visible: true, icon: 'folder_shared', label: { tr: t('sidebar.pvla'), en: 'PVLA', ro: 'PVLA' } },
     { id: 'drone', order: 7, visible: true, icon: 'flight', label: { tr: t('sidebar.drone'), en: 'Drone', ro: 'Dronă' } }, 
-    { id: 'feedback', order: 7.5, visible: true, icon: 'reviews', label: { tr: 'Geri Bildirimler', en: 'Feedbacks', ro: 'Feedback' } }, // NEW ITEM
+    { id: 'feedback', order: 7.5, visible: true, icon: 'reviews', label: { tr: tr.v2.sidebar.feedback, en: en.v2.sidebar.feedback, ro: ro.v2.sidebar.feedback } },
     { id: 'users', order: 9, visible: true, icon: 'group', label: { tr: t('sidebar.users'), en: 'Users', ro: 'Utilizatori' } },
     { id: 'settings', order: 8, visible: true, icon: 'settings', label: { tr: t('sidebar.settings'), en: 'Settings', ro: 'Setări' } },
-    { id: 'changelog', order: 10, visible: true, icon: 'history_edu', label: { tr: 'Değişiklik Günlüğü', en: 'Changelog', ro: 'Jurnal Modificări' } },
+    { id: 'changelog', order: 10, visible: true, icon: 'history_edu', label: { tr: tr.v2.sidebar.changelog, en: en.v2.sidebar.changelog, ro: ro.v2.sidebar.changelog } },
   ];
 
   const siteItems = useMemo(() => {
@@ -150,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <div className="flex-1 text-left">
                     <p className="text-sm font-bold">IHA AI</p>
-                    <p className="text-[10px] opacity-70">Proje Asistanı</p>
+                    <p className="text-[10px] opacity-70">{t('v2.sidebar.aiAssistant')}</p>
                 </div>
             </div>
           </button>

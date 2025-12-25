@@ -18,13 +18,18 @@ export const v2 = {
         errorCaptcha: "Doğrulama sorusunu yanlış cevapladınız.",
         errorSubmit: "Bir hata oluştu. Lütfen tekrar deneyin.",
         successSubmit: "Geri bildiriminiz başarıyla iletildi. Teşekkür ederiz!",
-        nametext: "İsminiz ve Soyisminiz",
         subjects: {
             suggestion: "Geliştirme Önerisi",
             bug: "Hata Bildirimi",
             data: "Veri Güncelleme Talebi",
             feature: "Yeni Özellik İsteği",
             other: "Diğer"
+        },
+        placeholder: {
+            fullName: "İsminiz ve Soyisminiz...",
+            email: "ornek@sirket.com.tr",
+            phone: "+90 5XX XXX XX XX",
+            captcha: "Sonuç?"
         }
     },
     admin: {
@@ -40,6 +45,7 @@ export const v2 = {
             delete: "Mesajı Sil",
             statusUpdated: "Durum güncellendi.",
             deleted: "Silindi.",
+            deleteConfirm: "Bu geri bildirimi kalıcı olarak silmek istediğinizden emin misiniz?",
             status: {
                 NEW: "YENİ",
                 READ: "OKUNDU",
@@ -47,5 +53,12 @@ export const v2 = {
                 RESOLVED: "ÇÖZÜLDÜ"
             }
         }
+    },
+    sidebar: {
+        feedback: "Geri Bildirimler",
+        changelog: "Değişiklik Günlüğü",
+        structureInventory: "Yapı Envanteri",
+        aiAssistant: "Proje Asistanı",
+        masterDesign: "Master Dizayn"
     }
 };
